@@ -9,7 +9,10 @@ import { PushSubscriptionService, type NotificationPayload } from "./push";
 
 export const MORNING_NOTIFICATION_CRON = "30 2 * * *";
 export const EVENING_NOTIFICATION_CRON = "30 13 * * *";
-export const ITEM_REMINDER_CRON = "* * * * *";
+// Poll on a cadence longer than Neon's five-minute idle window so an otherwise
+// quiet database can scale to zero. Reminders may be delivered up to 10 minutes
+// after their scheduled timestamp.
+export const ITEM_REMINDER_CRON = "*/10 * * * *";
 export const NOTIFICATION_TIME_ZONE = "Asia/Kolkata";
 
 export type ScheduledNotificationKind = "morning" | "evening";

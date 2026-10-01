@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "executor-api-template",
+  "name": "executor-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -14,9 +14,9 @@
     ]
   },
   "vars": {
-    "APP_ENV": "local",
-    "WEB_ORIGIN": "http://localhost:3000",
-    "BETTER_AUTH_URL": "http://localhost:8787"
+    "APP_ENV": "production",
+    "WEB_ORIGIN": "https://your-web.example.com",
+    "BETTER_AUTH_URL": "https://your-api.example.com"
   },
   "observability": {
     "enabled": true,
@@ -25,5 +25,11 @@
   },
   "triggers": {
     "crons": ["*/10 * * * *", "30 2 * * *", "30 13 * * *"]
-  }
+  },
+  "routes": [
+    {
+      "pattern": "your-api.example.com",
+      "custom_domain": true
+    }
+  ]
 }

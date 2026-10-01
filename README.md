@@ -1,12 +1,6 @@
 # Executor
 
-Standalone Executor application extracted from `itsrobin-web`.
-
-Production:
-
-- Web/PWA: https://executor.itsrobin.dev
-- API: https://api.executor.itsrobin.dev
-- API health: https://api.executor.itsrobin.dev/health
+A self-hostable personal planning app for habits, tasks, schedules, and reminders.
 
 ## Architecture
 
@@ -14,9 +8,9 @@ Production:
 - `apps/api`: portable Hono application with a thin Cloudflare Workers entrypoint on port 8787.
 - `packages/domain`: pure civil-date, recurrence, quantity, and visibility behavior.
 - `packages/contracts`: shared Zod request schemas.
-- PostgreSQL/Neon access is isolated in the API database adapter and repositories.
+- PostgreSQL access is isolated in the API database adapter and repositories.
 - Better Auth is hosted by the API and stores users/sessions in PostgreSQL.
-- The frontend is an installable PWA; standards-based Web Push subscriptions are owned by authenticated users and stored in Neon.
+- The frontend is an installable PWA; standards-based Web Push subscriptions are owned by authenticated users and stored in PostgreSQL.
 
 ## Local setup
 
@@ -26,6 +20,8 @@ Production:
 4. Run `npm run db:migrate`.
 5. Run `npm run dev`.
 6. Create the owner once with `OWNER_EMAIL=... OWNER_PASSWORD=... npm run auth:bootstrap-owner -w @executor/api` while the API is running.
+
+Local credentials belong only in `apps/api/.dev.vars`; the frontend’s local public API origin belongs in `apps/web/.env.local`. Both are ignored by Git.
 
 Local URLs:
 
@@ -47,13 +43,6 @@ Local URLs:
 | `npm run build` | Build web and dry-run bundle API |
 | `npm run db:generate` | Generate committed Drizzle migrations |
 | `npm run db:migrate` | Apply migrations using `apps/api/.dev.vars` |
-| `npm run api:deploy` | Deploy the Worker |
+| `npm run api:deploy` | Deploy the API Worker |
 | `npm run web:deploy` | Build and deploy the OpenNext PWA Worker |
-| `npm run migration:audit` | Audit explicit source DB |
-| `npm run migration:export` | Export the four Executor tables |
-| `npm run migration:import` | Import into explicit target DB |
-| `npm run migration:verify` | Compare full ordered rows/checksums |
-
-Migration commands require both `SOURCE_DATABASE_URL` and `TARGET_DATABASE_URL` where applicable. Never use a generic URL for source/target selection.
-
-See [architecture](docs/architecture.md), [deployment](docs/deployment.md), [migration report](docs/migration-report.md), and [data verification](docs/data-verification.md).
+See [architecture](docs/architecture.md) and [deployment](docs/deployment.md).

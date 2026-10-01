@@ -14,11 +14,7 @@
     "db:generate": "npm run db:generate -w @executor/api",
     "db:migrate": "npm run db:migrate -w @executor/api",
     "api:deploy": "npm run deploy -w @executor/api -- --env production",
-    "web:deploy": "npm run deploy -w @executor/web",
-    "migration:audit": "npm run migration:audit -w @executor/api",
-    "migration:export": "npm run migration:export -w @executor/api",
-    "migration:import": "npm run migration:import -w @executor/api",
-    "migration:verify": "npm run migration:verify -w @executor/api"
+    "web:deploy": "npm run deploy -w @executor/web"
   },
   "devDependencies": {
     "concurrently": "latest",

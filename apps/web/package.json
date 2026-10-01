@@ -6,7 +6,7 @@
     "dev": "next dev --port 3000",
     "build": "opennextjs-cloudflare build --env=\"\"",
     "build:next": "next build",
-    "deploy": "opennextjs-cloudflare build --env=\"\" && opennextjs-cloudflare deploy --env=\"\" -- --keep-vars",
+    "deploy": "node scripts/deploy-production.mjs",
     "start": "next start --port 3000",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

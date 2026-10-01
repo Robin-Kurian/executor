@@ -5,18 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --port 8787",
-    "deploy": "wrangler deploy",
+    "deploy": "node scripts/deploy-production.mjs",
     "build": "wrangler deploy --dry-run --env=\"\" --outdir dist",
     "typegen": "wrangler types --env-interface CloudflareBindings worker-configuration.d.ts",
     "typecheck": "npm run typegen && tsc -p tsconfig.json",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "auth:bootstrap-owner": "tsx scripts/bootstrap-owner.ts",
-    "migration:audit": "tsx scripts/migration/cli.ts audit",
-    "migration:export": "tsx scripts/migration/cli.ts export",
-    "migration:import": "tsx scripts/migration/cli.ts import",
-    "migration:verify": "tsx scripts/migration/cli.ts verify"
+    "auth:bootstrap-owner": "tsx scripts/bootstrap-owner.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "latest",

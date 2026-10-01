@@ -24,6 +24,7 @@ const today = (completed = false): TodayPayload => ({
 
 describe("scheduled notifications", () => {
   it("maps UTC cron schedules to their notification kind", () => {
+    expect(ITEM_REMINDER_CRON).toBe("*/10 * * * *");
     expect(notificationKindForCron(MORNING_NOTIFICATION_CRON)).toBe("morning");
     expect(notificationKindForCron(EVENING_NOTIFICATION_CRON)).toBe("evening");
     expect(notificationKindForCron(ITEM_REMINDER_CRON)).toBe("item");

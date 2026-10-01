@@ -118,7 +118,7 @@ export function NotificationSettings() {
             <div className="mt-5 rounded-2xl border border-[--color-border] bg-[--color-bg] p-4">
               <p className="text-sm font-medium">{supported === false ? "Not supported" : enabled ? "Enabled on this device" : permission === "denied" ? "Blocked by browser" : "Not enabled"}</p>
               <p className="mt-1 text-sm leading-6 text-[--color-text-secondary]">
-                {supported === false ? "This browser does not expose service workers and Web Push." : permission === "denied" ? "Allow notifications for executor.itsrobin.dev in the browser’s site settings, then return here." : enabled ? "Executor can send reminders even when this window is closed." : "Permission is requested only after you choose Enable."}
+                {supported === false ? "This browser does not expose service workers and Web Push." : permission === "denied" ? "Allow notifications for this site in the browser’s site settings, then return here." : enabled ? "Executor can send reminders even when this window is closed." : "Permission is requested only after you choose Enable."}
               </p>
             </div>
             {failure ? (
