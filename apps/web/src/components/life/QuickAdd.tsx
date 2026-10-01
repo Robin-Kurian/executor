@@ -295,22 +295,7 @@ export function QuickAdd() {
             <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="quick-add-reminder-at">Reminder time</label>
             <DateTimeField id="quick-add-reminder-at" value={reminderAt} onChange={setReminderAt} />
           </div>
-          <div>
-            <label className="mb-1 block text-sm text-[--color-text-muted]">Priority</label>
-            <div className="flex w-full isolate">
-          {(["low", "medium", "high"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setPriority(value)}
-              className={lifeSegmentedChoiceClass(priority === value)}
-            >
-              {value}
-            </button>
-          ))}
-            </div>
-          </div>
-          <div>
+          <div className="col-span-2 lg:col-span-1">
             <label className="mb-1 block text-sm text-[--color-text-muted]">Repeats</label>
             <Select
               variant="surface"
@@ -325,31 +310,48 @@ export function QuickAdd() {
               }
               ariaLabel="Repeats"
             />
+            {recurrence === "custom" ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((day) => {
+                  const on = weekdays.includes(day.value);
+                  return (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() =>
+                        setWeekdays((current) =>
+                          on
+                            ? current.filter((d) => d !== day.value)
+                            : [...current, day.value].sort(),
+                        )
+                      }
+                      className={lifeDayChipClass(on)}
+                    >
+                      {day.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-[--color-text-muted]">Priority</label>
+            <div className="flex w-full isolate">
+          {(["low", "medium", "high"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setPriority(value)}
+              className={`${lifeSegmentedChoiceClass(priority === value)} ${
+                value === "medium" ? "flex-[1.25] sm:flex-1" : "flex-[0.875] sm:flex-1"
+              }`}
+            >
+              {value}
+            </button>
+          ))}
+            </div>
           </div>
         </div>
-        {recurrence === "custom" ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {WEEKDAYS.map((day) => {
-              const on = weekdays.includes(day.value);
-              return (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() =>
-                    setWeekdays((current) =>
-                      on
-                        ? current.filter((d) => d !== day.value)
-                        : [...current, day.value].sort(),
-                    )
-                  }
-                  className={lifeDayChipClass(on)}
-                >
-                  {day.label}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
 
         {type === "task" ? (
           <div className="mt-4">

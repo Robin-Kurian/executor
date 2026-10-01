@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
 import { ChevronLeft } from "lucide-react";
@@ -33,6 +34,7 @@ const PLAN_STATUS_OPTIONS = [
 
 export function PlanDetail({ planId }: { planId: string }) {
   const { date, openAdd, bump, refreshToken } = useLife();
+  const router = useRouter();
   const planKey = lifeCacheKey("plan", `${planId}:${date}`);
   const notesKey = lifeCacheKey("notes", planId);
   const planQuery = useLifeQuery(planKey, () => lifeApi.plan(planId, date), refreshToken);
@@ -47,6 +49,7 @@ export function PlanDetail({ planId }: { planId: string }) {
   const [editing, setEditing] = useState<TodayItem | null>(null);
   const [planDirty, setPlanDirty] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [deletingPlan, setDeletingPlan] = useState(false);
 
   useEffect(() => {
     setPlan(planQuery.data ?? null);
@@ -81,6 +84,21 @@ export function PlanDetail({ planId }: { planId: string }) {
       toast.error(err instanceof Error ? err.message : "Could not save plan");
     } finally {
       setSavingPlan(false);
+    }
+  }
+
+  async function deletePlan() {
+    if (!confirm("Delete this plan? Its items and notes will also be deleted.")) return;
+    setDeletingPlan(true);
+    try {
+      await lifeApi.deletePlan(planId);
+      invalidateLifeCache();
+      bump();
+      toast.success("Plan deleted");
+      router.replace(executorPaths.plans);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete plan");
+      setDeletingPlan(false);
     }
   }
 
@@ -138,9 +156,9 @@ export function PlanDetail({ planId }: { planId: string }) {
     <div>
       <Link
         href={executorPaths.plans}
-        className="-ml-7 inline-flex min-h-10 items-center gap-1 rounded-xl px-2 text-base text-[--color-text-muted] transition-colors hover:text-[--color-text-primary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/50"
+        className="-ml-2 inline-flex min-h-10 items-center gap-0 rounded-xl px-2 text-base text-[--color-text-muted] transition-colors hover:text-[--color-text-primary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/50"
       >
-        <ChevronLeft className="h-[1em] w-[1em]" strokeWidth={2} aria-hidden />
+        <ChevronLeft className="-translate-x-1.5 h-[1em] w-[1em]" strokeWidth={2} aria-hidden />
         Plans
       </Link>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
@@ -198,11 +216,16 @@ export function PlanDetail({ planId }: { planId: string }) {
           </div>
         </label>
       </div>
-      <div className="mt-4 flex items-center justify-end gap-3">
-        {planDirty ? <p className="text-sm text-[var(--color-text-muted)]">Unsaved changes</p> : null}
-        <LifeButton onClick={savePlan} disabled={!planDirty || savingPlan}>
-          {savingPlan ? "Saving…" : "Save changes"}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <LifeButton variant="danger" onClick={deletePlan} disabled={deletingPlan}>
+          {deletingPlan ? "Deleting…" : "Delete plan"}
         </LifeButton>
+        <div className="flex items-center gap-3">
+          {planDirty ? <p className="text-sm text-[var(--color-text-muted)]">Unsaved changes</p> : null}
+          <LifeButton onClick={savePlan} disabled={!planDirty || savingPlan}>
+            {savingPlan ? "Saving…" : "Save changes"}
+          </LifeButton>
+        </div>
       </div>
 
       <ItemGroup

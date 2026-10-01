@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { localToday } from "@executor/domain/dates";
 import { formatQuantityWithUnit, isQuantityItem } from "@executor/domain/quantity";
-import type { PlanItem } from "@executor/domain/types";
+import type { ItemType, PlanItem } from "@executor/domain/types";
 import { Select } from "@/components/ui/Select";
 import { lifeApi } from "./api";
 import { DateField } from "./DateField";
@@ -12,7 +12,7 @@ import { DateTimeField } from "./DateTimeField";
 import { LifeSheet } from "./LifeSheet";
 import { QuantityFields, quantityPayload } from "./QuantityFields";
 import { useLife } from "./LifeProvider";
-import { LifeArea, LifeButton, LifeField, WEEKDAYS, lifeDayChipClass, lifeSegmentedChoiceClass } from "./ui";
+import { LifeArea, LifeButton, LifeField, LifeToggle, WEEKDAYS, lifeAccentChipClass, lifeDayChipClass, lifeSegmentedChoiceClass } from "./ui";
 
 const ITEM_STATUS_OPTIONS = [
   { value: "todo", label: "To do" },
@@ -48,6 +48,7 @@ export function ItemEditor({
 }) {
   const { plans } = useLife();
   const [planId, setPlanId] = useState(item.plan_id);
+  const [type, setType] = useState<ItemType>(item.type);
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description);
   const [startDate, setStartDate] = useState(item.start_date ?? "");
@@ -74,11 +75,24 @@ export function ItemEditor({
       .catch(() => setHistory([]));
   }, [item.id]);
 
+  function changeType(nextType: ItemType) {
+    setType(nextType);
+    if ((nextType === "habit" || nextType === "metric") && recurrence === "none") {
+      setRecurrence("daily");
+    }
+    if (nextType === "metric") setTrackQty(true);
+    if ((nextType === "habit" || nextType === "metric") && status === "todo") {
+      setStatus("active");
+    }
+    if (nextType === "task" && status === "active") setStatus("todo");
+  }
+
   async function save() {
     setSaving(true);
     try {
       await lifeApi.updateItem(item.id, {
         plan_id: planId,
+        type,
         title,
         description,
         start_date: startDate || null,
@@ -90,7 +104,7 @@ export function ItemEditor({
         recurrence,
         recurrence_weekdays: weekdays,
         ...quantityPayload(
-          item.type === "habit" || item.type === "metric" ? trackQty : false,
+          type === "habit" || type === "metric" ? trackQty : false,
           targetValue,
           unit,
           steps,
@@ -120,6 +134,18 @@ export function ItemEditor({
       <h2 id="life-edit-title" className="text-lg font-semibold">
         Edit item
       </h2>
+      <div className="mb-3 mt-4 flex gap-2">
+        {(["task", "habit", "metric"] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => changeType(value)}
+            className={lifeAccentChipClass(type === value)}
+          >
+            {value}
+          </button>
+        ))}
+      </div>
       <div className="mt-4 space-y-4">
         <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)_minmax(15rem,1fr)]">
           <div className="order-1 col-span-2 lg:col-span-1">
@@ -172,10 +198,38 @@ export function ItemEditor({
               />
             )}
           </div>
-          <div className="order-5 lg:order-6">
-            <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-reminder-at">Reminder time</label>
-            <DateTimeField id="item-reminder-at" value={reminderAt} onChange={setReminderAt} />
-            <p className="mt-1 text-xs text-[--color-text-muted]">Local time. Clear to disable.</p>
+          <div className="order-5 col-span-2 lg:order-5 lg:col-span-1">
+            <p className="mb-1 text-sm text-[var(--color-text-muted)]">Repeats</p>
+            <Select
+              variant="surface"
+              options={RECURRENCE_OPTIONS}
+              value={recurrence}
+              onChange={(val) => {
+                if (val) setRecurrence(val as PlanItem["recurrence"]);
+              }}
+              ariaLabel="Repeats"
+            />
+            {recurrence === "custom" ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((day) => {
+                  const on = weekdays.includes(day.value);
+                  return (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() =>
+                        setWeekdays((current) =>
+                          on ? current.filter((d) => d !== day.value) : [...current, day.value],
+                        )
+                      }
+                      className={lifeDayChipClass(on)}
+                    >
+                      {day.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
           <div className="order-6 lg:order-7">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Priority</p>
@@ -185,7 +239,9 @@ export function ItemEditor({
                   key={value}
                   type="button"
                   onClick={() => setPriority(value)}
-                  className={lifeSegmentedChoiceClass(priority === value)}
+                  className={`${lifeSegmentedChoiceClass(priority === value)} ${
+                    value === "medium" ? "flex-[1.25] sm:flex-1" : "flex-[0.875] sm:flex-1"
+                  }`}
                 >
                   {value}
                 </button>
@@ -204,18 +260,6 @@ export function ItemEditor({
               ariaLabel="Item status"
             />
           </div>
-          <div className="order-5 lg:order-5">
-            <p className="mb-1 text-sm text-[var(--color-text-muted)]">Repeats</p>
-            <Select
-              variant="surface"
-              options={RECURRENCE_OPTIONS}
-              value={recurrence}
-              onChange={(val) => {
-                if (val) setRecurrence(val as PlanItem["recurrence"]);
-              }}
-              ariaLabel="Repeats"
-            />
-          </div>
         </div>
         {status === "waiting" ? (
           <LifeField
@@ -224,53 +268,65 @@ export function ItemEditor({
             placeholder="Waiting on"
           />
         ) : null}
-        {recurrence === "custom" ? (
-          <div className="flex flex-wrap gap-1.5">
-            {WEEKDAYS.map((day) => {
-              const on = weekdays.includes(day.value);
-              return (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() =>
-                    setWeekdays((current) =>
-                      on ? current.filter((d) => d !== day.value) : [...current, day.value],
-                    )
-                  }
-                  className={lifeDayChipClass(on)}
-                >
-                  {day.label}
-                </button>
-              );
-            })}
+        <div className="lg:grid lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-start lg:gap-6">
+          <div>
+            <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-reminder-at">Reminder time</label>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="w-full min-w-0 sm:w-80 sm:shrink-0 lg:w-60">
+                <DateTimeField id="item-reminder-at" value={reminderAt} onChange={setReminderAt} />
+              </div>
+              {type === "habit" || type === "metric" ? (
+                <LifeToggle
+                  checked={trackQty}
+                  onChange={setTrackQty}
+                  label="Quantifiable"
+                />
+              ) : null}
+            </div>
+            <div className="mt-5 hidden lg:block">
+              <p className="text-xs uppercase tracking-[0.16em] text-[--color-text-muted]">History</p>
+              <p className="mt-2 text-sm text-[--color-text-secondary]">
+                {history.filter((row) => row.completed).length} completed day
+                {history.filter((row) => row.completed).length === 1 ? "" : "s"} recorded
+                {history[0]
+                  ? ` · last ${history[0].date}${
+                      history[0].value != null
+                        ? ` · ${formatQuantityWithUnit(history[0].value, item.unit)}`
+                        : ""
+                    }`
+                  : ""}
+              </p>
+            </div>
           </div>
-        ) : null}
-        {item.type === "habit" || item.type === "metric" ? (
-          <QuantityFields
-            enabled={trackQty}
-            onEnabledChange={setTrackQty}
-            target={targetValue}
-            onTargetChange={setTargetValue}
-            unit={unit}
-            onUnitChange={setUnit}
-            steps={steps}
-            onStepsChange={setSteps}
-          />
-        ) : null}
-      </div>
-      <div className="mt-5">
-        <p className="text-xs uppercase tracking-[0.16em] text-[--color-text-muted]">History</p>
-        <p className="mt-2 text-sm text-[--color-text-secondary]">
-          {history.filter((row) => row.completed).length} completed day
-          {history.filter((row) => row.completed).length === 1 ? "" : "s"} recorded
-          {history[0]
-            ? ` · last ${history[0].date}${
-                history[0].value != null
-                  ? ` · ${formatQuantityWithUnit(history[0].value, item.unit)}`
-                  : ""
-              }`
-            : ""}
-        </p>
+          {type === "habit" || type === "metric" ? (
+            <QuantityFields
+              className="mt-2 lg:mt-0"
+              enabled={trackQty}
+              onEnabledChange={setTrackQty}
+              target={targetValue}
+              onTargetChange={setTargetValue}
+              unit={unit}
+              onUnitChange={setUnit}
+              steps={steps}
+              onStepsChange={setSteps}
+              showToggle={false}
+            />
+          ) : null}
+        </div>
+        <div className="mt-5 lg:hidden">
+          <p className="text-xs uppercase tracking-[0.16em] text-[--color-text-muted]">History</p>
+          <p className="mt-2 text-sm text-[--color-text-secondary]">
+            {history.filter((row) => row.completed).length} completed day
+            {history.filter((row) => row.completed).length === 1 ? "" : "s"} recorded
+            {history[0]
+              ? ` · last ${history[0].date}${
+                  history[0].value != null
+                    ? ` · ${formatQuantityWithUnit(history[0].value, item.unit)}`
+                    : ""
+                }`
+              : ""}
+          </p>
+        </div>
       </div>
       <div className="mt-5 flex gap-2">
         <LifeButton onClick={save} disabled={saving} className="flex-1">

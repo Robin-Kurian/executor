@@ -80,7 +80,7 @@ export function LifeSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className="life-sheet-scrollbar relative z-10 max-h-[90dvh] w-full overflow-y-auto overscroll-contain rounded-t-3xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5 text-[var(--color-text-primary)] shadow-2xl sm:max-w-3xl sm:rounded-3xl sm:p-7 lg:max-w-5xl lg:p-10"
+        className="life-sheet-scrollbar relative z-10 max-h-[90dvh] w-full overflow-y-auto overscroll-contain rounded-t-3xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5 text-[var(--color-text-primary)] shadow-2xl sm:max-w-3xl sm:rounded-3xl sm:p-7 lg:max-w-4xl lg:p-10"
       >
         {children}
       </div>
