@@ -131,7 +131,12 @@ export function ItemEditor({
   }
 
   return (
-    <LifeSheet onClose={onClose} labelledBy="life-edit-title" centerOnMobile>
+    <LifeSheet
+      onClose={onClose}
+      labelledBy="life-edit-title"
+      centerOnMobile
+      className="life-sheet-mobile-full"
+    >
       <div className="flex items-center justify-between gap-3">
         <h2 id="life-edit-title" className="text-lg font-semibold">
           Edit item

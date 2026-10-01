@@ -232,3 +232,18 @@ html[data-theme="light"] .header-icon-control:active {
 .life-sheet-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-secondary);
 }
+
+/* Mobile sheets retain touch scrolling for genuinely long forms, but present
+   like a native app panel instead of exposing a desktop scrollbar. */
+@media (max-width: 639px) {
+  .life-sheet-mobile-full {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 1rem;
+  }
+
+  .life-sheet-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .life-sheet-scrollbar::-webkit-scrollbar { display: none; }
+}
