@@ -1,6 +1,6 @@
 // Bump when the shell/runtime caching policy changes so installed PWAs do not
 // keep serving obsolete CSS or JavaScript after a UI release.
-const CACHE_VERSION = "executor-shell-v2";
+const CACHE_VERSION = "executor-shell-v3";
 const SHELL_URLS = [
   "/offline",
   "/manifest.webmanifest",
@@ -28,7 +28,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname === "/sw.js") return;
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  // Next/Turbopack module URLs can change while a client is open. Let the
+  // browser and deployment platform revalidate them rather than returning a
+  // service-worker cache hit from an older release.
+  if (url.pathname.startsWith("/icons/")) {
     event.respondWith(caches.open(CACHE_VERSION).then(async (cache) => {
       const cached = await cache.match(request);
       if (cached) return cached;

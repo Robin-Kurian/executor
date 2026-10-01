@@ -8,10 +8,11 @@ import type { PlanItem } from "@executor/domain/types";
 import { Select } from "@/components/ui/Select";
 import { lifeApi } from "./api";
 import { DateField } from "./DateField";
+import { DateTimeField } from "./DateTimeField";
 import { LifeSheet } from "./LifeSheet";
 import { QuantityFields, quantityPayload } from "./QuantityFields";
 import { useLife } from "./LifeProvider";
-import { LifeArea, LifeButton, LifeField, WEEKDAYS, lifeChoiceClass, lifeDayChipClass } from "./ui";
+import { LifeArea, LifeButton, LifeField, WEEKDAYS, lifeDayChipClass, lifeSegmentedChoiceClass } from "./ui";
 
 const ITEM_STATUS_OPTIONS = [
   { value: "todo", label: "To do" },
@@ -120,13 +121,18 @@ export function ItemEditor({
         Edit item
       </h2>
       <div className="mt-4 space-y-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <LifeField
-            className="order-1 col-span-2 lg:col-span-2"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <div className="order-3 lg:order-2">
+        <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)_minmax(15rem,1fr)]">
+          <div className="order-1 col-span-2 lg:col-span-1">
+            <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-title">
+              Title
+            </label>
+            <LifeField
+              id="item-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+          <div className="order-2 lg:order-2">
             <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-plan">
               Plan
             </label>
@@ -142,11 +148,11 @@ export function ItemEditor({
             />
           </div>
           <LifeArea
-            className="order-2 col-span-2 min-h-20 lg:order-3 lg:min-h-20"
+            className="order-4 col-span-2 min-h-20 lg:col-span-3 lg:min-h-20"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          <div className="order-3 lg:order-4">
+          <div className="order-3 lg:order-3">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">
               {recurrence !== "none" ? "Start date" : "Due date"}
             </p>
@@ -166,27 +172,27 @@ export function ItemEditor({
               />
             )}
           </div>
-          <div className="order-4 lg:order-6">
+          <div className="order-5 lg:order-6">
             <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-reminder-at">Reminder time</label>
-            <LifeField id="item-reminder-at" type="datetime-local" value={reminderAt} onChange={(event) => setReminderAt(event.target.value)} />
+            <DateTimeField id="item-reminder-at" value={reminderAt} onChange={setReminderAt} />
             <p className="mt-1 text-xs text-[--color-text-muted]">Local time. Clear to disable.</p>
           </div>
-          <div className="order-5 lg:order-7">
+          <div className="order-6 lg:order-7">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Priority</p>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex w-full isolate">
               {(["low", "medium", "high"] as const).map((value) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setPriority(value)}
-                  className={`${lifeChoiceClass(priority === value)} capitalize`}
+                  className={lifeSegmentedChoiceClass(priority === value)}
                 >
                   {value}
                 </button>
               ))}
             </div>
           </div>
-          <div className="order-5 lg:order-8">
+          <div className="order-6 lg:order-8">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Status</p>
             <Select
               variant="surface"
@@ -198,7 +204,7 @@ export function ItemEditor({
               ariaLabel="Item status"
             />
           </div>
-          <div className="order-4 lg:order-5">
+          <div className="order-5 lg:order-5">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Repeats</p>
             <Select
               variant="surface"

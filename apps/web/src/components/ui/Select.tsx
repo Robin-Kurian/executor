@@ -15,7 +15,7 @@ import { cn } from "@/lib/cn";
 export type SelectOption = { label: string; value: string };
 
 export const dropdownMenuClassName =
-  "max-h-60 overflow-y-auto overscroll-contain rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] py-1 shadow-2xl";
+  "dropdown-menu-scrollbar max-h-60 overflow-y-auto overscroll-contain rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] py-1 shadow-2xl";
 
 export function dropdownOptionClassName(selected: boolean) {
   return cn(
@@ -31,7 +31,7 @@ const TRIGGER_CLASS: Record<"pill" | "field" | "surface", string> = {
   field:
     "cms-field flex w-full cursor-pointer items-center justify-between text-left font-normal",
   surface:
-    "apple-glass flex w-full cursor-pointer items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm text-[var(--color-text-primary)] transition-all duration-200 hover:-translate-y-px focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]",
+    "flex w-full cursor-pointer items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-left text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)]",
 };
 
 const MENU_MAX_H = 240;

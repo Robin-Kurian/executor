@@ -18,6 +18,15 @@ export function lifeChoiceClass(active: boolean) {
   );
 }
 
+export function lifeSegmentedChoiceClass(active: boolean) {
+  return cn(
+    "relative -ml-px min-w-0 flex-1 cursor-pointer truncate border border-[var(--color-border)] px-3 py-2.5 text-sm capitalize transition-colors first:ml-0 first:rounded-l-xl last:rounded-r-xl focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-accent)]",
+    active
+      ? "z-[1] bg-[var(--color-accent)]/10 font-medium text-[var(--color-text-primary)]"
+      : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text-primary)]",
+  );
+}
+
 export function lifeAccentChipClass(active: boolean) {
   return cn(
     "cursor-pointer rounded-full px-3 py-1.5 text-sm capitalize transition-colors",
@@ -61,7 +70,7 @@ export function LifeButton({
         "disabled:pointer-events-none disabled:opacity-50",
         variant === "primary" &&
           "bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)]",
-        variant === "glass" && "life-glass-button rounded-full px-5",
+        variant === "glass" && "life-glass-button rounded-xl px-5",
         variant === "ghost" &&
           "border border-[var(--color-border)] bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]",
         variant === "danger" &&

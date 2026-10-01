@@ -8,6 +8,7 @@ import type { ItemType, RecurrenceKind } from "@executor/domain/types";
 import { Select } from "@/components/ui/Select";
 import { lifeApi } from "./api";
 import { DateField } from "./DateField";
+import { DateTimeField } from "./DateTimeField";
 import { LifeSheet } from "./LifeSheet";
 import { useLife } from "./LifeProvider";
 import { QuantityFields, quantityPayload } from "./QuantityFields";
@@ -20,6 +21,7 @@ import {
   lifeAccentChipClass,
   lifeChoiceClass,
   lifeDayChipClass,
+  lifeSegmentedChoiceClass,
 } from "./ui";
 
 type DatePreset = "today" | "tomorrow" | "none" | "specific";
@@ -195,66 +197,71 @@ export function QuickAdd() {
           ))}
         </div>
 
-        <label className="mb-1 block text-sm text-[--color-text-muted]">Title</label>
-        <LifeField
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={
-            type === "metric"
-              ? "Drink 3.78 Ltr of water"
-              : type === "habit"
-                ? "Gym"
-                : "Finish the homepage"
-          }
-        />
-
-        <label className="mb-1 mt-4 block text-sm text-[--color-text-muted]">Plan</label>
-        {creatingPlan || plans.length === 0 ? (
-          <div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)_minmax(15rem,1fr)]">
+          <div className="col-span-2 lg:col-span-1">
+            <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="quick-add-title">Title</label>
             <LifeField
-              autoFocus={creatingPlan && plans.length > 0}
-              value={newPlanName}
-              onChange={(e) => setNewPlanName(e.target.value)}
-              placeholder="New plan name"
+              id="quick-add-title"
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={
+                type === "metric"
+                  ? "Drink 3.78 Ltr of water"
+                  : type === "habit"
+                    ? "Gym"
+                    : "Finish the homepage"
+              }
             />
-            {plans.length > 0 ? (
-              <button
-                type="button"
-                className="mt-2 cursor-pointer text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-                onClick={() => {
-                  setCreatingPlan(false);
-                  setNewPlanName("");
-                  setPlanId(addDefaults.planId ?? plans[0]?.id ?? "");
-                }}
-              >
-                Choose existing plan
-              </button>
-            ) : null}
           </div>
-        ) : (
-          <Select
-            variant="surface"
-            options={planOptions}
-            value={planId || null}
-            onChange={(val) => {
-              setPlanId(val ?? "");
-              setCreatingPlan(false);
-            }}
-            placeholder="Choose a plan"
-            ariaLabel="Plan"
-            action={{
-              label: "New plan",
-              onSelect: () => {
-                setPlanId("");
-                setCreatingPlan(true);
-              },
-            }}
-          />
-        )}
-
-        <label className="mb-1 mt-4 block text-sm text-[--color-text-muted]">Date</label>
-        <div className="flex flex-wrap gap-2">
+          <div>
+            <label className="mb-1 block text-sm text-[--color-text-muted]">Plan</label>
+            {creatingPlan || plans.length === 0 ? (
+              <div>
+                <LifeField
+                  autoFocus={creatingPlan && plans.length > 0}
+                  value={newPlanName}
+                  onChange={(e) => setNewPlanName(e.target.value)}
+                  placeholder="New plan name"
+                />
+                {plans.length > 0 ? (
+                  <button
+                    type="button"
+                    className="mt-2 cursor-pointer text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                    onClick={() => {
+                      setCreatingPlan(false);
+                      setNewPlanName("");
+                      setPlanId(addDefaults.planId ?? plans[0]?.id ?? "");
+                    }}
+                  >
+                    Choose existing plan
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              <Select
+                variant="surface"
+                options={planOptions}
+                value={planId || null}
+                onChange={(val) => {
+                  setPlanId(val ?? "");
+                  setCreatingPlan(false);
+                }}
+                placeholder="Choose a plan"
+                ariaLabel="Plan"
+                action={{
+                  label: "New plan",
+                  onSelect: () => {
+                    setPlanId("");
+                    setCreatingPlan(true);
+                  },
+                }}
+              />
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-[--color-text-muted]">Date</label>
+            <div className="flex flex-wrap gap-1">
           {(
             [
               ["today", "Today"],
@@ -272,50 +279,54 @@ export function QuickAdd() {
               {label}
             </button>
           ))}
-        </div>
-        {preset === "specific" ? (
-          <div className="mt-2">
-            <DateField
-              value={specific}
-              onChange={(next) => setSpecific(next ?? localToday())}
-              allowClear={false}
-              ariaLabel="Specific date"
-            />
+            </div>
+            {preset === "specific" ? (
+              <div className="mt-2">
+                <DateField
+                  value={specific}
+                  onChange={(next) => setSpecific(next ?? localToday())}
+                  allowClear={false}
+                  ariaLabel="Specific date"
+                />
+              </div>
+            ) : null}
           </div>
-        ) : null}
-
-        <label className="mb-1 mt-4 block text-sm text-[--color-text-muted]" htmlFor="quick-add-reminder-at">Reminder time</label>
-        <LifeField id="quick-add-reminder-at" type="datetime-local" value={reminderAt} onChange={(event) => setReminderAt(event.target.value)} />
-        <p className="mt-1 text-xs text-[--color-text-muted]">Uses this device’s local time. Leave empty for no timed reminder.</p>
-
-        <label className="mb-1 mt-4 block text-sm text-[--color-text-muted]">Priority</label>
-        <div className="flex gap-2">
+          <div>
+            <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="quick-add-reminder-at">Reminder time</label>
+            <DateTimeField id="quick-add-reminder-at" value={reminderAt} onChange={setReminderAt} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-[--color-text-muted]">Priority</label>
+            <div className="flex w-full isolate">
           {(["low", "medium", "high"] as const).map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => setPriority(value)}
-              className={`${lifeChoiceClass(priority === value)} capitalize`}
+              className={lifeSegmentedChoiceClass(priority === value)}
             >
               {value}
             </button>
           ))}
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-[--color-text-muted]">Repeats</label>
+            <Select
+              variant="surface"
+              options={
+                type === "task"
+                  ? RECURRENCE_OPTIONS
+                  : RECURRENCE_OPTIONS.filter((option) => option.value !== "none")
+              }
+              value={recurrence === "none" && type !== "task" ? "daily" : recurrence}
+              onChange={(val) =>
+                setRecurrence((val as RecurrenceKind) ?? (type === "task" ? "none" : "daily"))
+              }
+              ariaLabel="Repeats"
+            />
+          </div>
         </div>
-
-        <label className="mb-1 mt-4 block text-sm text-[--color-text-muted]">Repeats</label>
-        <Select
-          variant="surface"
-          options={
-            type === "task"
-              ? RECURRENCE_OPTIONS
-              : RECURRENCE_OPTIONS.filter((option) => option.value !== "none")
-          }
-          value={recurrence === "none" && type !== "task" ? "daily" : recurrence}
-          onChange={(val) =>
-            setRecurrence((val as RecurrenceKind) ?? (type === "task" ? "none" : "daily"))
-          }
-          ariaLabel="Repeats"
-        />
         {recurrence === "custom" ? (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {WEEKDAYS.map((day) => {

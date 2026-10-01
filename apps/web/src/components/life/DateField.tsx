@@ -29,12 +29,14 @@ export function DateField({
   placeholder = "Pick a date",
   allowClear = true,
   ariaLabel,
+  menuClassName,
 }: {
   value: string | null;
   onChange: (date: string | null) => void;
   placeholder?: string;
   allowClear?: boolean;
   ariaLabel?: string;
+  menuClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState(() => (value ?? localToday()).slice(0, 7));
@@ -107,7 +109,7 @@ export function DateField({
       role="dialog"
       aria-label="Choose date"
       style={menuStyle}
-      className={cn(dropdownMenuClassName, "p-3")}
+      className={cn(dropdownMenuClassName, "p-3", menuClassName)}
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <button

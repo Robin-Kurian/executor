@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
+import { ChevronLeft } from "lucide-react";
 import { planDayProgress } from "@executor/domain/dates";
 import { executorPaths } from "@/lib/paths";
 import { isQuantityItem, nextQuantityState, nextToggleState } from "@executor/domain/quantity";
@@ -135,12 +136,16 @@ export function PlanDetail({ planId }: { planId: string }) {
 
   return (
     <div>
-      <Link href={executorPaths.plans} className="text-sm text-[--color-text-muted]">
-        ← Plans
+      <Link
+        href={executorPaths.plans}
+        className="-ml-7 inline-flex min-h-10 items-center gap-1 rounded-xl px-2 text-base text-[--color-text-muted] transition-colors hover:text-[--color-text-primary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/50"
+      >
+        <ChevronLeft className="h-[1em] w-[1em]" strokeWidth={2} aria-hidden />
+        Plans
       </Link>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{plan.name}</h1>
+          <h1 className="text-[1.75rem] font-semibold tracking-tight">{plan.name}</h1>
           {day ? (
             <p className="mt-1 text-sm text-[--color-text-muted]">
               Day {day.current} / {day.total}

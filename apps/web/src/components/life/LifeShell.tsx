@@ -116,7 +116,7 @@ function ShellInner({ children }: { children: ReactNode }) {
     <div className="min-h-dvh bg-transparent text-[--color-text-primary] [&_a]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer">
       <header className="sticky top-0 z-30 overflow-visible">
         <div
-          className="pointer-events-none absolute inset-0 border-b border-[--color-border] bg-[--color-bg]/90 backdrop-blur"
+          className="pointer-events-none absolute inset-0 bg-[--color-bg]/90 backdrop-blur"
           aria-hidden
         />
         <div className="relative mx-auto flex min-h-20 max-w-6xl items-center justify-between gap-6 px-5 py-4 md:px-8">
@@ -174,11 +174,11 @@ function ShellInner({ children }: { children: ReactNode }) {
         aria-label="Executor"
         aria-hidden={addOpen || undefined}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 border-t border-[--color-border]/70 bg-[--color-bg]/78 pb-[max(0.35rem,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(0,0,0,.12)] backdrop-blur-xl lg:hidden",
+          "fixed inset-x-0 bottom-0 z-40 bg-[--color-bg]/78 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_32px_rgba(0,0,0,.12)] backdrop-blur-xl lg:hidden",
           addOpen && "invisible pointer-events-none",
         )}
       >
-        <div className="flex items-end gap-1.5 px-2 pt-1">
+        <div className="flex items-end gap-1.5 px-2 py-2">
           {TABS.slice(0, 2).map((tab) => (
             <MobileTab key={tab.href} tab={tab} pathname={pathname} />
           ))}

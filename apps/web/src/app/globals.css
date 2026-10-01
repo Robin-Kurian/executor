@@ -13,6 +13,9 @@ a[href],
   --color-accent: #14b8a6; --color-accent-hover: #2dd4bf; --color-text-primary: #f1f5f9; --color-text-secondary: #94a3b8; --color-text-muted: #64748b;
   --status-danger: #fb7185; --status-danger-bg: rgba(244,63,94,.12); --status-danger-border: rgba(244,63,94,.3);
   --glass-fill: rgba(8,9,14,.28); --glass-fill-hover: rgba(8,9,14,.18); --glass-border: rgba(148,163,184,.20); --glass-highlight: rgba(255,255,255,.012);
+  --ui-corner-radius: 1.5rem;
+  --mobile-tab-selection-radius: var(--ui-corner-radius);
+  --radius-xl: var(--ui-corner-radius); --radius-2xl: var(--ui-corner-radius); --radius-3xl: var(--ui-corner-radius);
 }
 html[data-theme="light"] { --color-bg: #f8fafc; --color-surface: #fff; --color-surface-raised: #f1f5f9; --color-border: rgba(15,23,42,.12); --color-text-primary: #0f172a; --color-text-secondary: #475569; --color-text-muted: #64748b; --glass-fill: rgba(255,255,255,.42); --glass-fill-hover: rgba(255,255,255,.58); --glass-border: rgba(255,255,255,.68); --glass-highlight: rgba(255,255,255,.52); }
 * { box-sizing: border-box; }
@@ -48,7 +51,14 @@ html[data-theme="light"]::-webkit-scrollbar-thumb {
 }
 html[data-theme="light"]::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #64748b, #475569); }
 
-.cms-field { border: 1px solid var(--color-border); border-radius: .75rem; background: var(--color-bg); padding: .625rem .75rem; color: var(--color-text-primary); outline: none; }
+/* Keep dropdown lists scrollable without exposing a scrollbar. */
+.dropdown-menu-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.dropdown-menu-scrollbar::-webkit-scrollbar { display: none; }
+
+.cms-field { border: 1px solid var(--color-border); border-radius: var(--ui-corner-radius); background: var(--color-bg); padding: .625rem .75rem; color: var(--color-text-primary); outline: none; }
 .cms-field:focus { border-color: var(--color-accent); }
 
 /* Layered translucency deliberately remains visible even over a quiet background. */
@@ -152,17 +162,17 @@ html[data-theme="light"] .push-success-toast {
 }
 
 .mobile-tab-active {
+  border-radius: var(--mobile-tab-selection-radius);
   background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 32%, transparent), color-mix(in srgb, #6366f1 18%, transparent));
   box-shadow: 0 6px 20px color-mix(in srgb, var(--color-accent) 24%, transparent), inset 0 1px 0 rgba(255,255,255,.1);
 }
-
 .header-action-group {
   display: flex;
   align-items: center;
   gap: .25rem;
   padding: .25rem;
   border: 1px solid var(--glass-border);
-  border-radius: 1rem;
+  border-radius: var(--ui-corner-radius);
   background: rgba(10,8,18,.20);
   box-shadow: inset 0 1px 0 rgba(197,176,255,.08), 0 10px 26px rgba(0,0,0,.18);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
@@ -180,6 +190,32 @@ html[data-theme="light"] .push-success-toast {
   box-shadow: none !important;
 }
 .header-icon-control:hover { background: rgba(255,255,255,.07) !important; }
+
+/* In light mode, give each utility action its own liquid-glass lens instead of
+   letting the darker group backdrop read as a single grey control. */
+html[data-theme="light"] .header-action-group {
+  border-color: rgba(255,255,255,.74);
+  background: rgba(255,255,255,.30);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 12px 28px rgba(71,85,105,.13);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+  backdrop-filter: blur(26px) saturate(155%);
+}
+html[data-theme="light"] .header-icon-control {
+  border: 1px solid rgba(255,255,255,.70) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(226,232,240,.38)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92), inset 0 -1px 0 rgba(148,163,184,.12), 0 5px 12px rgba(71,85,105,.12) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(145%);
+  backdrop-filter: blur(16px) saturate(145%);
+}
+html[data-theme="light"] .header-icon-control:hover {
+  border-color: rgba(255,255,255,.92) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(219,234,254,.56)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,1), 0 8px 16px rgba(71,85,105,.16) !important;
+}
+html[data-theme="light"] .header-icon-control:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 3px rgba(71,85,105,.15), 0 2px 6px rgba(71,85,105,.10) !important;
+}
 
 /* Keep scrollable sheets polished in desktop PWAs while retaining native touch scrolling. */
 .life-sheet-scrollbar {

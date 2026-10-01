@@ -13,12 +13,16 @@ describe("PWA contract", () => {
     ]));
   });
 
-  it("registers a root-scoped worker and keeps writes/API calls out of runtime caches", () => {
+  it("registers a production-only root-scoped worker and keeps Next runtime chunks out of service-worker caches", () => {
     const registration = readFileSync(new URL("./lib/pwa.ts", import.meta.url), "utf8");
+    const bootstrap = readFileSync(new URL("./components/pwa/PwaBootstrap.tsx", import.meta.url), "utf8");
     const worker = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
     expect(registration).toContain('register("/sw.js", { scope: "/"');
+    expect(bootstrap).toContain('process.env.NODE_ENV !== "production"');
+    expect(bootstrap).toContain("unregisterExecutorServiceWorkers()");
     expect(worker).toContain('request.method !== "GET"');
     expect(worker).toContain("url.origin !== self.location.origin");
+    expect(worker).not.toContain('url.pathname.startsWith("/_next/static/")');
     expect(worker).toContain('caches.match("/offline")');
     expect(worker).toContain('self.addEventListener("notificationclick"');
     expect(worker).toContain("renotify: true");

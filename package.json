@@ -7,6 +7,8 @@
     "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev:api\" \"npm run dev:web\"",
     "dev:web": "npm run dev -w @executor/web",
     "dev:api": "npm run dev -w @executor/api",
+    "web": "npm run dev:web",
+    "api": "npm run dev:api",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
