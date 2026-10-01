@@ -1,3 +1,4 @@
+![Executor](https://res.cloudinary.com/itsrobin/image/upload/v1790838489/Executor_Productivity_App_Hero_Medium_djoxok.jpg)
 # Executor
 
 A self-hostable personal planning app for habits, tasks, schedules, and reminders.
