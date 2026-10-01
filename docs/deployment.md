@@ -36,7 +36,7 @@ To add scheduled summaries later, call the existing notification service from a 
 
 After upgrading an installation that cached an older manifest, close all Executor tabs, open the browser's site settings for `executor.itsrobin.dev`, clear stored data/service workers once, then reload and install again. Normally the worker's versioned cache and `updateViaCache: "none"` update automatically.
 
-Desktop Brave additionally requires **Settings → Privacy and security → Use Google services for push messaging** to be enabled; Brave documents that this toggle allows Web Push delivery. Chrome/Chromium and Android use their platform push service without an Executor-specific setting.
+Brave on desktop and Android additionally requires **Settings → Privacy and security → Use Google services for push messaging** to be enabled; fully close and reopen Brave after changing it. Brave documents that this toggle allows Web Push delivery. Other Chrome/Chromium installations and Android browsers use their platform push service without an Executor-specific setting.
 
 ## Backup / restore
 

@@ -6,10 +6,12 @@ import toast from "react-hot-toast";
 import { EXECUTOR_API } from "@/lib/paths";
 import { base64UrlToUint8Array, registerExecutorServiceWorker } from "@/lib/pwa";
 import { cn } from "@/lib/cn";
+import { getPushRegistrationFailure, type PushRegistrationFailure } from "@/lib/push-errors";
 import { lifeFetch } from "@/components/life/api";
 
 type PushConfig = { public_key: string };
 type PushTestResult = { delivered: number; removed: number; failed: number };
+type BraveNavigator = Navigator & { brave?: { isBrave?: () => Promise<boolean> } };
 
 function serialize(subscription: PushSubscription) {
   const value = subscription.toJSON();
@@ -23,6 +25,7 @@ export function NotificationSettings() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
   const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<PushRegistrationFailure | null>(null);
 
   const refresh = useCallback(async () => {
     const available = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
@@ -43,6 +46,7 @@ export function NotificationSettings() {
 
   async function enable() {
     setPending(true);
+    setFailure(null);
     try {
       const nextPermission = await Notification.requestPermission();
       setPermission(nextPermission);
@@ -59,7 +63,11 @@ export function NotificationSettings() {
       setSubscription(next);
       toast.success("Notifications enabled on this device");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not enable notifications");
+      const braveApi = (navigator as BraveNavigator).brave?.isBrave;
+      const isBrave = braveApi ? await braveApi().catch(() => false) : false;
+      const nextFailure = getPushRegistrationFailure(error, isBrave);
+      setFailure(nextFailure);
+      toast.error(nextFailure.title);
     } finally {
       setPending(false);
     }
@@ -101,8 +109,8 @@ export function NotificationSettings() {
         {enabled ? <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[--color-accent]" /> : null}
       </button>
       {open ? (
-        <div className="fixed inset-0 z-[80] grid place-items-end bg-black/60 p-0 backdrop-blur-sm sm:place-items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="notification-settings-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
-          <section className="w-full max-w-md rounded-t-3xl border border-[--color-border] bg-[--color-surface] p-6 shadow-2xl sm:rounded-3xl">
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm sm:p-5" role="dialog" aria-modal="true" aria-labelledby="notification-settings-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+          <section className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-[--color-border] bg-[--color-surface] p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div><h2 id="notification-settings-title" className="text-xl font-semibold">Notifications</h2><p className="mt-1 text-sm leading-6 text-[--color-text-secondary]">Manage this installed browser or device independently.</p></div>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close notification settings" className="rounded-lg p-2 text-[--color-text-secondary] hover:bg-[--color-surface-raised]"><X className="h-5 w-5" /></button>
@@ -113,6 +121,12 @@ export function NotificationSettings() {
                 {supported === false ? "This browser does not expose service workers and Web Push." : permission === "denied" ? "Allow notifications for executor.itsrobin.dev in the browser’s site settings, then return here." : enabled ? "Executor can send reminders even when this window is closed." : "Permission is requested only after you choose Enable."}
               </p>
             </div>
+            {failure ? (
+              <div className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4" role="alert">
+                <p className="text-sm font-semibold text-amber-200">{failure.title}</p>
+                <p className="mt-1 text-sm leading-6 text-[--color-text-secondary]">{failure.message}</p>
+              </div>
+            ) : null}
             <div className="mt-5 grid gap-3">
               {!enabled && permission !== "denied" && supported !== false ? <button type="button" disabled={pending || supported === null} onClick={enable} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[--color-accent] px-4 py-3 font-semibold text-[--color-bg] disabled:opacity-50">{pending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Bell className="h-5 w-5" />}Enable notifications</button> : null}
               {enabled ? <button type="button" disabled={pending} onClick={sendTest} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[--color-accent] px-4 py-3 font-semibold text-[--color-bg] disabled:opacity-50">{pending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}Send test notification</button> : null}
