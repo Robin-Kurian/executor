@@ -105,6 +105,20 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   index("push_subscriptions_user_id_idx").on(table.user_id),
 ]);
 
+export const pushNotificationRuns = pgTable("push_notification_runs", {
+  id: text("id").primaryKey(),
+  user_id: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  kind: varchar("kind", { length: 20 }).notNull(),
+  local_date: date("local_date", { mode: "string" }).notNull(),
+  delivered: integer("delivered").notNull().default(0),
+  removed: integer("removed").notNull().default(0),
+  failed: integer("failed").notNull().default(0),
+  started_at: timestamp("started_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  completed_at: timestamp("completed_at", { withTimezone: true, mode: "string" }),
+}, (table) => [
+  index("push_notification_runs_user_date_idx").on(table.user_id, table.local_date),
+]);
+
 export const planRelations = relations(plans, ({ many }) => ({ items: many(planItems), notes: many(planNotes) }));
 export const itemRelations = relations(planItems, ({ one, many }) => ({
   plan: one(plans, { fields: [planItems.plan_id], references: [plans.id] }), completions: many(itemCompletions), notes: many(planNotes),

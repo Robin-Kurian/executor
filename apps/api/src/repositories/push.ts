@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { PushSubscriptionInput } from "@executor/contracts";
 import type { Database } from "../db/client";
-import { pushSubscriptions } from "../db/schema";
+import { pushNotificationRuns, pushSubscriptions } from "../db/schema";
 
 export type StoredPushSubscription = typeof pushSubscriptions.$inferSelect;
 
@@ -58,5 +58,25 @@ export class PushRepository implements PushSubscriptionStore {
 
   listForUser(userId: string): Promise<StoredPushSubscription[]> {
     return this.db.select().from(pushSubscriptions).where(eq(pushSubscriptions.user_id, userId));
+  }
+
+  async listSubscribedUserIds(): Promise<string[]> {
+    const rows = await this.db.selectDistinct({ userId: pushSubscriptions.user_id }).from(pushSubscriptions);
+    return rows.map((row) => row.userId);
+  }
+
+  async claimNotificationRun(id: string, userId: string, kind: string, localDate: string): Promise<boolean> {
+    const rows = await this.db.insert(pushNotificationRuns).values({
+      id, user_id: userId, kind, local_date: localDate,
+    }).onConflictDoNothing({ target: pushNotificationRuns.id }).returning({ id: pushNotificationRuns.id });
+    return rows.length > 0;
+  }
+
+  async completeNotificationRun(id: string, result: { delivered: number; removed: number; failed: number }): Promise<void> {
+    await this.db.update(pushNotificationRuns).set({ ...result, completed_at: sql`now()` }).where(eq(pushNotificationRuns.id, id));
+  }
+
+  async releaseNotificationRun(id: string): Promise<void> {
+    await this.db.delete(pushNotificationRuns).where(eq(pushNotificationRuns.id, id));
   }
 }

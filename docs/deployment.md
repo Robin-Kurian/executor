@@ -32,7 +32,7 @@ Set `NEXT_PUBLIC_API_URL` to the production Worker/custom-domain origin at build
 
 Generate VAPID keys once with `npx web-push generate-vapid-keys`. Keep the private key out of Git, place the three `VAPID_*` values in `apps/api/.dev.vars` locally, and use Wrangler secrets in production. Apply `npm run db:migrate` before deploying the push API. A signed-in user can enable/disable the current device and invoke `/api/v1/push/test` from the notification settings UI.
 
-To add scheduled summaries later, call the existing notification service from a thin Cloudflare `scheduled()` adapter and declare its UTC cron under the production environment. Do not move subscription or payload logic into the adapter.
+Production Cron Triggers send an agenda at **08:00 Asia/Kolkata** (`30 2 * * *` UTC) and an evening check-in at **19:00 Asia/Kolkata** (`30 13 * * *` UTC). Each per-user/date/kind run is claimed in `push_notification_runs` before delivery so Cloudflare's at-least-once cron execution cannot duplicate a notification. Item data currently stores dates, not times, so due-date items appear in the morning agenda rather than generating arbitrary time-of-day alerts.
 
 After upgrading an installation that cached an older manifest, close all Executor tabs, open the browser's site settings for `executor.itsrobin.dev`, clear stored data/service workers once, then reload and install again. Normally the worker's versioned cache and `updateViaCache: "none"` update automatically.
 
