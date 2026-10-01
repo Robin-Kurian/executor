@@ -14,7 +14,7 @@ From `apps/api`, first create the private config and configure required Worker S
 
 ```bash
 npx wrangler whoami
-npx wrangler secret put DATABASE_URL --config wrangler.production.private.jsonc
+npm run update-connection
 npx wrangler secret put BETTER_AUTH_SECRET --config wrangler.production.private.jsonc
 npx wrangler secret put VAPID_PUBLIC_KEY --config wrangler.production.private.jsonc
 npx wrangler secret put VAPID_PRIVATE_KEY --config wrangler.production.private.jsonc
@@ -50,4 +50,4 @@ Brave on desktop and Android may require **Settings → Privacy and security →
 
 ## Backups and secret rotation
 
-Use your PostgreSQL provider’s backup and restore facilities and keep exports outside the repository. To rotate a database credential, update the local `DATABASE_URL` and the Worker secret. Rotate `BETTER_AUTH_SECRET` only with an intentional session invalidation plan, and remove temporary bootstrap credentials from shell history and secret stores.
+Use your PostgreSQL provider’s backup and restore facilities and keep exports outside the repository. To rotate a database credential, update the local `DATABASE_URL`, then run `npm run update-connection` from the repository root and paste the new value only at the prompt. The command updates the production Worker secret; it does not read or upload `.dev.vars`. Deploy with `npm run api:deploy` afterward if you also changed code or configuration. Rotate `BETTER_AUTH_SECRET` only with an intentional session invalidation plan, and remove temporary bootstrap credentials from shell history and secret stores.

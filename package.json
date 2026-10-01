@@ -13,6 +13,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "db:generate": "npm run db:generate -w @executor/api",
     "db:migrate": "npm run db:migrate -w @executor/api",
+    "update-connection": "npm run update-connection -w @executor/api",
     "api:deploy": "npm run deploy -w @executor/api",
     "web:deploy": "npm run deploy -w @executor/web",
     "deploy": "npm run api:deploy && npm run web:deploy"

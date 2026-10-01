@@ -12,6 +12,7 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "update-connection": "wrangler secret put DATABASE_URL --config wrangler.production.private.jsonc",
     "auth:bootstrap-owner": "tsx scripts/bootstrap-owner.ts"
   },
   "dependencies": {
