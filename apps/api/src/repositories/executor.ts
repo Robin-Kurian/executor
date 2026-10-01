@@ -72,6 +72,18 @@ export class ExecutorRepository {
     }).where(eq(plans.id, id)).returning();
     return row ? mapPlan(row) : null;
   }
+  async reorderPlans(planIds: string[]): Promise<void> {
+    const existing = await this.db.select({ id: plans.id }).from(plans).orderBy(asc(plans.sort_order), asc(plans.created_at));
+    const knownIds = new Set(existing.map(({ id }) => id));
+    if (!planIds.every((id) => knownIds.has(id))) {
+      throw Object.assign(new Error("Plan order contains an unknown plan"), { status: 400 });
+    }
+    const order = [...planIds, ...existing.map(({ id }) => id).filter((id) => !planIds.includes(id))];
+    const updates = order.map((id, sort_order) =>
+      this.db.update(plans).set({ sort_order, updated_at: sql`now()` }).where(eq(plans.id, id)),
+    );
+    await this.db.batch(updates as [typeof updates[number], ...typeof updates]);
+  }
   async deletePlan(id: string): Promise<boolean> {
     return (await this.db.delete(plans).where(eq(plans.id, id)).returning({ id: plans.id })).length > 0;
   }

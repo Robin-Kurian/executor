@@ -32,6 +32,9 @@ export const lifeApi = {
     lifeFetch<Plan>(`${EXECUTOR_API}/plans`, { method: "POST", body: JSON.stringify(body) }),
   updatePlan: (id: string, body: Record<string, unknown>) =>
     lifeFetch<Plan>(`${EXECUTOR_API}/plans/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  reorderPlans: (planIds: string[]) => lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/plans/reorder`, {
+    method: "PATCH", body: JSON.stringify({ plan_ids: planIds }),
+  }),
   deletePlan: (id: string) =>
     lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/plans/${id}`, { method: "DELETE" }),
   createItem: (planId: string, body: Record<string, unknown>) =>

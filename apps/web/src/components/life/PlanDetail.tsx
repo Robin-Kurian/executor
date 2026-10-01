@@ -50,6 +50,7 @@ export function PlanDetail({ planId }: { planId: string }) {
   const [planDirty, setPlanDirty] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [deletingPlan, setDeletingPlan] = useState(false);
+  const [editingPlanName, setEditingPlanName] = useState(false);
 
   useEffect(() => {
     setPlan(planQuery.data ?? null);
@@ -78,6 +79,8 @@ export function PlanDetail({ planId }: { planId: string }) {
       });
       setPlan((current) => (current ? { ...current, ...updated } : current));
       planQuery.setData((current) => (current ? { ...current, ...updated } : current));
+      invalidateLifeCache({ keep: [planKey] });
+      bump();
       setPlanDirty(false);
       toast.success("Plan saved");
     } catch (err) {
@@ -163,7 +166,29 @@ export function PlanDetail({ planId }: { planId: string }) {
       </Link>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[1.75rem] font-semibold tracking-tight">{plan.name}</h1>
+          {editingPlanName ? (
+            <input
+              aria-label="Plan name"
+              autoFocus
+              size={Math.max(plan.name.length, 1)}
+              value={plan.name}
+              onChange={(e) => updatePlan({ name: e.target.value })}
+              onBlur={() => setEditingPlanName(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
+              }}
+              className="max-w-full appearance-none p-0 text-[1.75rem] font-semibold leading-[inherit] tracking-tight outline-none"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingPlanName(true)}
+              className="text-left text-[1.75rem] font-semibold leading-[inherit] tracking-tight focus-visible:outline-none"
+              aria-label="Edit plan name"
+            >
+              <h1>{plan.name}</h1>
+            </button>
+          )}
           {day ? (
             <p className="mt-1 text-sm text-[--color-text-muted]">
               Day {day.current} / {day.total}
@@ -178,28 +203,32 @@ export function PlanDetail({ planId }: { planId: string }) {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <LifeField
-          value={plan.name}
-          onChange={(e) => updatePlan({ name: e.target.value })}
-        />
-        <Select
-          variant="surface"
-          options={PLAN_STATUS_OPTIONS}
-          value={plan.status}
-          onChange={(val) => {
-            if (val) updatePlan({ status: val as PlanStatus });
-          }}
-          ariaLabel="Plan status"
-        />
-        <LifeArea
-          className="sm:col-span-2"
-          value={plan.description}
-          placeholder="Description"
-          onChange={(e) => updatePlan({ description: e.target.value })}
-        />
-        <label className="text-sm text-[--color-text-muted]">
-          Start
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="lg:col-start-1 lg:row-start-1 text-sm text-[--color-text-muted]">
+          Status
+          <div className="mt-1">
+            <Select
+              variant="surface"
+              options={PLAN_STATUS_OPTIONS}
+              value={plan.status}
+              onChange={(val) => {
+                if (val) updatePlan({ status: val as PlanStatus });
+              }}
+              ariaLabel="Plan status"
+            />
+          </div>
+        </label>
+        <label className="sm:col-span-2 lg:col-span-2 lg:col-start-1 lg:row-start-2 text-sm text-[--color-text-muted]">
+          Description
+          <LifeArea
+            className="mt-1"
+            value={plan.description}
+            placeholder="Description"
+            onChange={(e) => updatePlan({ description: e.target.value })}
+          />
+        </label>
+        <label className="lg:col-start-2 lg:row-start-1 text-sm text-[--color-text-muted]">
+          Start date
           <div className="mt-1">
             <DateField
               value={plan.start_date}
@@ -209,8 +238,8 @@ export function PlanDetail({ planId }: { planId: string }) {
             />
           </div>
         </label>
-        <label className="text-sm text-[--color-text-muted]">
-          End
+        <label className="lg:col-start-3 lg:row-start-1 text-sm text-[--color-text-muted]">
+          End date
           <div className="mt-1">
             <DateField
               value={plan.end_date}
@@ -220,9 +249,7 @@ export function PlanDetail({ planId }: { planId: string }) {
             />
           </div>
         </label>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3 sm:col-span-2 lg:col-start-3 lg:row-start-2 lg:self-end lg:pb-[5px] lg:pr-[10px]">
           {planDirty ? <p className="text-sm text-[var(--color-text-muted)]">Unsaved changes</p> : null}
           <LifeButton onClick={savePlan} disabled={!planDirty || savingPlan}>
             {savingPlan ? "Saving…" : "Save changes"}

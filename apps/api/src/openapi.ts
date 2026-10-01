@@ -2,7 +2,7 @@ import { OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   CalendarQuerySchema, CompletionSchema, CreateItemSchema, CreateNoteSchema, CreatePlanSchema, ErrorSchema,
   HistoryQuerySchema, IdParamsSchema, NoteSchema, NotesQuerySchema, PlanDetailQuerySchema, PlanItemSchema, PlanSchema,
-  PlansQuerySchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema, UpdateNoteSchema, UpdatePlanSchema,
+  PlansQuerySchema, ReorderPlansSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema, UpdateNoteSchema, UpdatePlanSchema,
   UpsertCompletionSchema,
   CreatePushSubscriptionSchema, DeletePushSubscriptionSchema, PushSubscriptionResultSchema, PushTestResultSchema,
 } from "@executor/contracts";
@@ -35,6 +35,7 @@ register({ method: "get", path: "/api/v1/calendar", request: { query: CalendarQu
 register({ method: "get", path: "/api/v1/inbox", responses: ok(z.array(PlanItemSchema)) });
 register({ method: "get", path: "/api/v1/plans", request: { query: PlansQuerySchema }, responses: ok(z.array(PlanSchema)) });
 register({ method: "post", path: "/api/v1/plans", request: { body: jsonBody(CreatePlanSchema) }, responses: created(PlanSchema) });
+register({ method: "patch", path: "/api/v1/plans/reorder", request: { body: jsonBody(ReorderPlansSchema) }, responses: ok(z.object({ ok: z.boolean() })) });
 register({ method: "get", path: "/api/v1/plans/{id}", request: { params: IdParamsSchema, query: PlanDetailQuerySchema }, responses: ok(z.any(), "Plan detail") });
 register({ method: "patch", path: "/api/v1/plans/{id}", request: { params: IdParamsSchema, body: jsonBody(UpdatePlanSchema) }, responses: ok(PlanSchema) });
 register({ method: "delete", path: "/api/v1/plans/{id}", request: { params: IdParamsSchema }, responses: ok(z.object({ ok: z.boolean() })) });

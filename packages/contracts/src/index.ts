@@ -74,6 +74,10 @@ export const CreatePlanSchema = z.object({
   color: z.string().max(32).optional(), status: z.enum(PLAN_STATUSES).optional(), start_date: nullableDate, end_date: nullableDate,
 });
 export const UpdatePlanSchema = CreatePlanSchema.partial().extend({ sort_order: z.number().int().optional() });
+export const ReorderPlansSchema = z.object({ plan_ids: z.array(UuidSchema).min(1) }).refine(
+  ({ plan_ids }) => new Set(plan_ids).size === plan_ids.length,
+  { message: "Each plan can only appear once", path: ["plan_ids"] },
+);
 export const CreateItemSchema = z.object({ ...itemFields, title: z.string().trim().min(1).max(500) });
 export const UpdateItemSchema = z.object({ ...itemFields, plan_id: UuidSchema.optional(), sort_order: z.number().int().optional() });
 export const UpsertCompletionSchema = z.object({

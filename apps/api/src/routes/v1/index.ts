@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
   CalendarQuerySchema, CreateItemSchema, CreateNoteSchema, CreatePlanSchema, HistoryQuerySchema, IdParamsSchema,
-  NotesQuerySchema, PlanDetailQuerySchema, PlansQuerySchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema,
+  NotesQuerySchema, PlanDetailQuerySchema, PlansQuerySchema, ReorderPlansSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema,
   UpdateNoteSchema, UpdatePlanSchema, UpsertCompletionSchema,
 } from "@executor/contracts";
 import { localToday } from "@executor/domain";
@@ -25,6 +25,10 @@ v1.get("/inbox", async (c) => c.json(await getInbox(repo(c))));
 
 v1.get("/plans", zValidator("query", PlansQuerySchema), async (c) => c.json(await repo(c).listPlans(c.req.valid("query").include_archived === "true")));
 v1.post("/plans", zValidator("json", CreatePlanSchema), async (c) => c.json(await repo(c).createPlan(c.req.valid("json")), 201));
+v1.patch("/plans/reorder", zValidator("json", ReorderPlansSchema), async (c) => {
+  await repo(c).reorderPlans(c.req.valid("json").plan_ids);
+  return c.json({ ok: true });
+});
 v1.get("/plans/:id", zValidator("param", IdParamsSchema), zValidator("query", PlanDetailQuerySchema), async (c) => {
   const repository = repo(c); const plan = await repository.getPlan(c.req.valid("param").id); if (!plan) return notFound(c, "Plan");
   const date = c.req.valid("query").date ?? localToday(); const items = await repository.listItems(plan.id);
