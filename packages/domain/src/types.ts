@@ -61,6 +61,7 @@ export type PlanItem = {
   status: ItemStatus;
   start_date: string | null;
   due_date: string | null;
+  reminder_at: string | null;
   recurrence: RecurrenceKind;
   recurrence_weekdays: number[];
   waiting_on: string;
@@ -162,6 +163,7 @@ export type CreateItemInput = {
   status?: ItemStatus;
   start_date?: string | null;
   due_date?: string | null;
+  reminder_at?: string | null;
   recurrence?: RecurrenceKind;
   recurrence_weekdays?: number[];
   waiting_on?: string;

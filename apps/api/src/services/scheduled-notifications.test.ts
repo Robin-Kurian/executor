@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { TodayPayload } from "@executor/domain";
 import {
-  EVENING_NOTIFICATION_CRON, MORNING_NOTIFICATION_CRON, dateInTimeZone, notificationKindForCron, scheduledNotificationPayload,
+  EVENING_NOTIFICATION_CRON, ITEM_REMINDER_CRON, MORNING_NOTIFICATION_CRON, dateInTimeZone, itemReminderPayload,
+  notificationKindForCron, scheduledNotificationPayload,
 } from "./scheduled-notifications";
 
 const today = (completed = false): TodayPayload => ({
@@ -12,7 +13,7 @@ const today = (completed = false): TodayPayload => ({
     habits: [],
     tasks: [{
       id: "item-1", plan_id: "plan-1", title: "Ship", description: "", type: "task", priority: "high", status: "todo",
-      start_date: null, due_date: "2026-10-01", recurrence: "none", recurrence_weekdays: [], waiting_on: "",
+      start_date: null, due_date: "2026-10-01", reminder_at: null, recurrence: "none", recurrence_weekdays: [], waiting_on: "",
       last_follow_up: null, next_follow_up: null, target_value: null, unit: "", step_values: [], sort_order: 0,
       created_at: "2026-10-01T00:00:00.000Z", updated_at: "2026-10-01T00:00:00.000Z", completed,
       value: null, completion_id: null, completion_note: "",
@@ -25,6 +26,7 @@ describe("scheduled notifications", () => {
   it("maps UTC cron schedules to their notification kind", () => {
     expect(notificationKindForCron(MORNING_NOTIFICATION_CRON)).toBe("morning");
     expect(notificationKindForCron(EVENING_NOTIFICATION_CRON)).toBe("evening");
+    expect(notificationKindForCron(ITEM_REMINDER_CRON)).toBe("item");
     expect(notificationKindForCron("0 * * * *")).toBeNull();
   });
 
@@ -38,6 +40,14 @@ describe("scheduled notifications", () => {
     });
     expect(scheduledNotificationPayload("evening", "2026-10-01", today(true))).toMatchObject({
       title: "Executor day complete", body: "Everything scheduled for today is complete.",
+    });
+  });
+
+  it("creates a deep-linked notification for a timed item", () => {
+    const item = today().plans[0]!.tasks[0]!;
+    item.reminder_at = "2026-10-01T10:30:00.000Z";
+    expect(itemReminderPayload(item)).toMatchObject({
+      title: "Reminder: Ship", route: "/plans/plan-1", tag: expect.stringContaining(item.id),
     });
   });
 });

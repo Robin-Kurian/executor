@@ -14,6 +14,7 @@ export const DateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((va
   return date.getUTCFullYear() === year && date.getUTCMonth() === month! - 1 && date.getUTCDate() === day;
 }, "Must be a real civil date in YYYY-MM-DD format").openapi({ example: "2026-10-01" });
 export const YearMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).openapi({ example: "2026-10" });
+export const DateTimeSchema = z.string().datetime({ offset: true }).openapi({ example: "2026-10-01T10:30:00.000Z" });
 
 export const ErrorSchema = z.object({
   error: z.string(),
@@ -30,7 +31,7 @@ export const PlanSchema = z.object({
 export const PlanItemSchema = z.object({
   id: UuidSchema, plan_id: UuidSchema, title: z.string(), description: z.string(),
   type: z.enum(ITEM_TYPES), priority: z.enum(ITEM_PRIORITIES), status: z.enum(ITEM_STATUSES),
-  start_date: DateOnlySchema.nullable(), due_date: DateOnlySchema.nullable(),
+  start_date: DateOnlySchema.nullable(), due_date: DateOnlySchema.nullable(), reminder_at: DateTimeSchema.nullable(),
   recurrence: z.enum(RECURRENCE_KINDS), recurrence_weekdays: z.array(z.number().int().min(0).max(6)),
   waiting_on: z.string(), last_follow_up: DateOnlySchema.nullable(), next_follow_up: DateOnlySchema.nullable(),
   target_value: z.number().nullable(), unit: z.string(), step_values: z.array(z.number()), sort_order: z.number().int(),
@@ -48,6 +49,7 @@ export const NoteSchema = z.object({
 }).openapi("PlanNote");
 
 const nullableDate = DateOnlySchema.nullable().optional();
+const nullableDateTime = DateTimeSchema.nullable().optional();
 const itemFields = {
   title: z.string().trim().min(1).max(500).optional(),
   description: z.string().optional(),
@@ -56,6 +58,7 @@ const itemFields = {
   status: z.enum(ITEM_STATUSES).optional(),
   start_date: nullableDate,
   due_date: nullableDate,
+  reminder_at: nullableDateTime,
   recurrence: z.enum(RECURRENCE_KINDS).optional(),
   recurrence_weekdays: z.array(z.number().int().min(0).max(6)).optional(),
   waiting_on: z.string().optional(),

@@ -29,6 +29,12 @@ const RECURRENCE_OPTIONS = [
   { value: "custom", label: "Custom weekdays" },
 ];
 
+function toLocalDateTime(iso: string | null) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
 export function ItemEditor({
   item,
   onClose,
@@ -42,6 +48,7 @@ export function ItemEditor({
   const [description, setDescription] = useState(item.description);
   const [startDate, setStartDate] = useState(item.start_date ?? "");
   const [dueDate, setDueDate] = useState(item.due_date ?? "");
+  const [reminderAt, setReminderAt] = useState(toLocalDateTime(item.reminder_at));
   const [priority, setPriority] = useState(item.priority);
   const [status, setStatus] = useState(item.status);
   const [waitingOn, setWaitingOn] = useState(item.waiting_on);
@@ -71,6 +78,7 @@ export function ItemEditor({
         description,
         start_date: startDate || null,
         due_date: dueDate || null,
+        reminder_at: reminderAt ? new Date(reminderAt).toISOString() : null,
         priority,
         status,
         waiting_on: waitingOn,
@@ -125,6 +133,11 @@ export function ItemEditor({
             ariaLabel="Due date"
           />
         )}
+        <div>
+          <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-reminder-at">Reminder time</label>
+          <LifeField id="item-reminder-at" type="datetime-local" value={reminderAt} onChange={(event) => setReminderAt(event.target.value)} />
+          <p className="mt-1 text-xs text-[--color-text-muted]">Uses this device’s local time. Clear it to disable the reminder.</p>
+        </div>
         <div>
           <p className="mb-1 text-sm text-[var(--color-text-muted)]">Priority</p>
           <div className="flex gap-2">

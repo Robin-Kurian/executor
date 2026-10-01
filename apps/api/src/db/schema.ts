@@ -33,6 +33,7 @@ export const planItems = pgTable("plan_items", {
   priority: varchar("priority", { length: 10 }).notNull().default("medium"),
   status: varchar("status", { length: 20 }).notNull().default("todo"),
   start_date: date("start_date", { mode: "string" }), due_date: date("due_date", { mode: "string" }),
+  reminder_at: timestamp("reminder_at", { withTimezone: true, mode: "string" }),
   recurrence: varchar("recurrence", { length: 20 }).notNull().default("none"),
   recurrence_weekdays: smallint("recurrence_weekdays").array().notNull().default([]),
   waiting_on: varchar("waiting_on", { length: 255 }).notNull().default(""),
@@ -47,6 +48,7 @@ export const planItems = pgTable("plan_items", {
   check("plan_items_status_check", sql`${table.status} in ('todo','in_progress','done','cancelled','waiting','active')`),
   check("plan_items_recurrence_check", sql`${table.recurrence} in ('none','daily','weekdays','weekly','custom')`),
   index("idx_plan_items_plan_id").on(table.plan_id), index("idx_plan_items_due_date").on(table.due_date),
+  index("idx_plan_items_reminder_at").on(table.reminder_at),
   index("idx_plan_items_status").on(table.status), index("idx_plan_items_type").on(table.type),
 ]);
 

@@ -12,6 +12,7 @@ const plan: Plan = {
 const item: PlanItem = {
   id: "00000000-0000-4000-8000-000000000002", plan_id: plan.id, title: "Item", description: "",
   type: "habit", priority: "medium", status: "active", start_date: "2026-09-01", due_date: null,
+  reminder_at: null,
   recurrence: "daily", recurrence_weekdays: [], waiting_on: "", last_follow_up: null, next_follow_up: null,
   target_value: null, unit: "", step_values: [], sort_order: 0,
   created_at: "2026-09-01T00:00:00.000Z", updated_at: "2026-09-01T00:00:00.000Z",

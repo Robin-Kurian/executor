@@ -45,6 +45,7 @@ export function QuickAdd() {
   const [recurrence, setRecurrence] = useState<RecurrenceKind>("none");
   const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [description, setDescription] = useState("");
+  const [reminderAt, setReminderAt] = useState("");
   const [waiting, setWaiting] = useState(false);
   const [waitingOn, setWaitingOn] = useState("");
   const [saving, setSaving] = useState(false);
@@ -64,6 +65,7 @@ export function QuickAdd() {
     setNewPlanName("");
     setCreatingPlan(!addDefaults.planId && currentPlans.length === 0);
     setDescription("");
+    setReminderAt("");
     setWaiting(false);
     setWaitingOn("");
     setPriority("medium");
@@ -144,7 +146,8 @@ export function QuickAdd() {
         priority,
         status: waiting ? "waiting" : undefined,
         waiting_on: waiting ? waitingOn : "",
-        due_date: type === "task" && !repeating ? due : null,
+        due_date: type === "task" && !repeating ? ((due ?? reminderAt.slice(0, 10)) || null) : null,
+        reminder_at: reminderAt ? new Date(reminderAt).toISOString() : null,
         start_date: startDate,
         recurrence,
         recurrence_weekdays: recurrence === "custom" ? weekdays : [],
@@ -280,6 +283,10 @@ export function QuickAdd() {
             />
           </div>
         ) : null}
+
+        <label className="mb-1 mt-4 block text-sm text-[--color-text-muted]" htmlFor="quick-add-reminder-at">Reminder time</label>
+        <LifeField id="quick-add-reminder-at" type="datetime-local" value={reminderAt} onChange={(event) => setReminderAt(event.target.value)} />
+        <p className="mt-1 text-xs text-[--color-text-muted]">Uses this device’s local time. Leave empty for no timed reminder.</p>
 
         <label className="mb-1 mt-4 block text-sm text-[--color-text-muted]">Priority</label>
         <div className="flex gap-2">

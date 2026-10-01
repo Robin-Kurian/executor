@@ -1,5 +1,5 @@
 import { createApp } from "./app";
-import { notificationKindForCron, runScheduledNotifications } from "./services/scheduled-notifications";
+import { notificationKindForCron, runDueItemReminders, runScheduledNotifications } from "./services/scheduled-notifications";
 
 const app = createApp();
 
@@ -12,6 +12,8 @@ export default {
       controller.noRetry();
       return;
     }
-    ctx.waitUntil(runScheduledNotifications(env, kind, controller.scheduledTime));
+    ctx.waitUntil(kind === "item"
+      ? runDueItemReminders(env, controller.scheduledTime)
+      : runScheduledNotifications(env, kind, controller.scheduledTime));
   },
 } satisfies ExportedHandler<CloudflareBindings>;

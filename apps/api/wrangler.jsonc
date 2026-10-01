@@ -19,7 +19,7 @@
     "production": {
       "name": "executor-api",
       "triggers": {
-        "crons": ["30 2 * * *", "30 13 * * *"]
+        "crons": ["* * * * *", "30 2 * * *", "30 13 * * *"]
       },
       "routes": [
         {

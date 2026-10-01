@@ -291,6 +291,7 @@ function ItemGroup({
                 <p className="text-sm font-medium">{item.title}</p>
                 <p className="text-xs text-[--color-text-muted]">
                   {item.recurrence !== "none" ? item.recurrence : item.due_date || "No date"}
+                  {item.reminder_at ? ` · reminder ${new Date(item.reminder_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}` : ""}
                   {item.priority !== "medium" ? ` · ${item.priority}` : ""}
                 </p>
               </button>

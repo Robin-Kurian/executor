@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, ne, notInArray, sql } from "drizzle-orm";
 import type {
   ItemCompletion, ItemPriority, ItemStatus, ItemType, Plan, PlanItem, PlanNote, PlanStatus, RecurrenceKind,
 } from "@executor/domain";
@@ -19,6 +19,7 @@ const mapPlan = (row: PlanRow): Plan => ({
 const mapItem = (row: ItemRow): PlanItem => ({
   ...row, type: row.type as ItemType, priority: row.priority as ItemPriority, status: row.status as ItemStatus,
   recurrence: row.recurrence as RecurrenceKind, target_value: row.target_value == null ? null : Number(row.target_value),
+  reminder_at: row.reminder_at ? new Date(row.reminder_at).toISOString() : null,
   step_values: row.step_values.map(Number), created_at: iso(row.created_at), updated_at: iso(row.updated_at),
 });
 const mapCompletion = (row: CompletionRow): ItemCompletion => ({
@@ -101,7 +102,7 @@ export class ExecutorRepository {
     const [row] = await this.db.insert(planItems).values({
       plan_id: planId, title: input.title.trim(), description: input.description?.trim() ?? "", type,
       priority: input.priority ?? "medium", status: defaultStatus(type, input.status), start_date: input.start_date ?? null,
-      due_date: input.due_date ?? null, recurrence: defaultRecurrence(type, input.recurrence),
+      due_date: input.due_date ?? null, reminder_at: input.reminder_at ?? null, recurrence: defaultRecurrence(type, input.recurrence),
       recurrence_weekdays: input.recurrence_weekdays ?? [], waiting_on: input.waiting_on?.trim() ?? "",
       last_follow_up: input.last_follow_up ?? null, next_follow_up: input.next_follow_up ?? null,
       target_value: input.target_value ?? null, unit: input.unit?.trim() ?? "", step_values: input.step_values ?? [],
@@ -119,6 +120,7 @@ export class ExecutorRepository {
       priority: input.priority ?? current.priority, status: input.status ?? current.status,
       start_date: input.start_date === undefined ? current.start_date : input.start_date,
       due_date: input.due_date === undefined ? current.due_date : input.due_date,
+      reminder_at: input.reminder_at === undefined ? current.reminder_at : input.reminder_at,
       recurrence: input.recurrence ?? current.recurrence, recurrence_weekdays: input.recurrence_weekdays ?? current.recurrence_weekdays,
       waiting_on: input.waiting_on?.trim() ?? current.waiting_on,
       last_follow_up: input.last_follow_up === undefined ? current.last_follow_up : input.last_follow_up,
@@ -131,6 +133,16 @@ export class ExecutorRepository {
   }
   async deleteItem(id: string): Promise<boolean> {
     return (await this.db.delete(planItems).where(eq(planItems.id, id)).returning({ id: planItems.id })).length > 0;
+  }
+
+  async listDueReminderItems(from: string, through: string): Promise<PlanItem[]> {
+    const rows = await this.db.select({ item: planItems }).from(planItems).innerJoin(plans, eq(planItems.plan_id, plans.id)).where(and(
+      eq(plans.status, "active"),
+      notInArray(planItems.status, ["done", "cancelled"]),
+      gte(planItems.reminder_at, from),
+      lte(planItems.reminder_at, through),
+    )).orderBy(asc(planItems.reminder_at)).limit(100);
+    return rows.map(({ item }) => mapItem(item));
   }
 
   async listCompletionsForDate(date: string, itemIds?: string[]): Promise<ItemCompletion[]> {

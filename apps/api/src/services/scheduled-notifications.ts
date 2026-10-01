@@ -1,4 +1,4 @@
-import type { TodayPayload } from "@executor/domain";
+import type { PlanItem, TodayPayload } from "@executor/domain";
 import { createDb } from "../db/client";
 import { parseEnv } from "../env";
 import { WebPushTransport } from "../infrastructure/web-push";
@@ -9,14 +9,28 @@ import { PushSubscriptionService, type NotificationPayload } from "./push";
 
 export const MORNING_NOTIFICATION_CRON = "30 2 * * *";
 export const EVENING_NOTIFICATION_CRON = "30 13 * * *";
+export const ITEM_REMINDER_CRON = "* * * * *";
 export const NOTIFICATION_TIME_ZONE = "Asia/Kolkata";
 
 export type ScheduledNotificationKind = "morning" | "evening";
+export type NotificationSchedule = ScheduledNotificationKind | "item";
 
-export function notificationKindForCron(cron: string): ScheduledNotificationKind | null {
+export function notificationKindForCron(cron: string): NotificationSchedule | null {
+  if (cron === ITEM_REMINDER_CRON) return "item";
   if (cron === MORNING_NOTIFICATION_CRON) return "morning";
   if (cron === EVENING_NOTIFICATION_CRON) return "evening";
   return null;
+}
+
+export function itemReminderPayload(item: PlanItem): NotificationPayload {
+  return {
+    title: `Reminder: ${item.title}`,
+    body: item.description.trim() || "This Executor item is due now.",
+    route: `/plans/${item.plan_id}`,
+    tag: `executor-item-${item.id}-${item.reminder_at}`,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/badge-96.png",
+  };
 }
 
 export function dateInTimeZone(timestamp: number, timeZone = NOTIFICATION_TIME_ZONE): string {
@@ -80,4 +94,44 @@ export async function runScheduledNotifications(bindings: CloudflareBindings, ki
 
   console.log(JSON.stringify({ message: "scheduled notifications complete", kind, date, ...totals }));
   return { kind, date, ...totals };
+}
+
+export async function runDueItemReminders(bindings: CloudflareBindings, scheduledTime: number) {
+  const runtime = parseEnv(bindings);
+  const db = createDb(runtime.DATABASE_URL);
+  const executorRepository = new ExecutorRepository(db);
+  const pushRepository = new PushRepository(db);
+  const through = new Date(scheduledTime).toISOString();
+  const from = new Date(scheduledTime - 24 * 60 * 60 * 1000).toISOString();
+  const [items, userIds] = await Promise.all([
+    executorRepository.listDueReminderItems(from, through),
+    pushRepository.listSubscribedUserIds(),
+  ]);
+  const service = new PushSubscriptionService(pushRepository);
+  const transport = new WebPushTransport(runtime);
+  const totals = { items: items.length, users: userIds.length, delivered: 0, removed: 0, failed: 0, skipped: 0 };
+
+  for (const item of items) {
+    if (!item.reminder_at) continue;
+    for (const userId of userIds) {
+      const runId = `item:${item.id}:${item.reminder_at}:${userId}`;
+      if (!await pushRepository.claimNotificationRun(runId, userId, "item", dateInTimeZone(scheduledTime))) {
+        totals.skipped += 1;
+        continue;
+      }
+      try {
+        const result = await service.sendToUser(userId, itemReminderPayload(item), transport);
+        await pushRepository.completeNotificationRun(runId, result);
+        totals.delivered += result.delivered;
+        totals.removed += result.removed;
+        totals.failed += result.failed;
+      } catch (error) {
+        await pushRepository.releaseNotificationRun(runId);
+        throw error;
+      }
+    }
+  }
+
+  console.log(JSON.stringify({ message: "item reminders complete", through, ...totals }));
+  return { through, ...totals };
 }
