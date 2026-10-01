@@ -6,10 +6,12 @@ import { createPortal } from "react-dom";
 export function LifeSheet({
   onClose,
   labelledBy,
+  centerOnMobile = false,
   children,
 }: {
   onClose: () => void;
   labelledBy?: string;
+  centerOnMobile?: boolean;
   children: ReactNode;
 }) {
   const onCloseRef = useRef(onClose);
@@ -69,7 +71,11 @@ export function LifeSheet({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center [&_a]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer">
+    <div
+      className={`fixed inset-0 z-[80] flex justify-center ${
+        centerOnMobile ? "items-center" : "items-end sm:items-center"
+      } [&_a]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer`}
+    >
       <button
         type="button"
         className="absolute inset-0 cursor-pointer bg-black/60"

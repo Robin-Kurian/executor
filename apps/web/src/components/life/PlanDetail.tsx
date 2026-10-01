@@ -170,7 +170,12 @@ export function PlanDetail({ planId }: { planId: string }) {
             </p>
           ) : null}
         </div>
-        <LifeButton onClick={() => openAdd({ planId, type: "task", date })}>Add item</LifeButton>
+        <div className="flex flex-wrap items-center gap-3">
+          <LifeButton variant="danger" onClick={deletePlan} disabled={deletingPlan}>
+            {deletingPlan ? "Deleting…" : "Delete plan"}
+          </LifeButton>
+          <LifeButton onClick={() => openAdd({ planId, type: "task", date })}>Add item</LifeButton>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -216,10 +221,7 @@ export function PlanDetail({ planId }: { planId: string }) {
           </div>
         </label>
       </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <LifeButton variant="danger" onClick={deletePlan} disabled={deletingPlan}>
-          {deletingPlan ? "Deleting…" : "Delete plan"}
-        </LifeButton>
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-3">
           {planDirty ? <p className="text-sm text-[var(--color-text-muted)]">Unsaved changes</p> : null}
           <LifeButton onClick={savePlan} disabled={!planDirty || savingPlan}>

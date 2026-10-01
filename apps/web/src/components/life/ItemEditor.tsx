@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { X } from "lucide-react";
 import { localToday } from "@executor/domain/dates";
 import { formatQuantityWithUnit, isQuantityItem } from "@executor/domain/quantity";
 import type { ItemType, PlanItem } from "@executor/domain/types";
@@ -130,10 +131,20 @@ export function ItemEditor({
   }
 
   return (
-    <LifeSheet onClose={onClose} labelledBy="life-edit-title">
-      <h2 id="life-edit-title" className="text-lg font-semibold">
-        Edit item
-      </h2>
+    <LifeSheet onClose={onClose} labelledBy="life-edit-title" centerOnMobile>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="life-edit-title" className="text-lg font-semibold">
+          Edit item
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="-mr-2 -mt-2 inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
+          aria-label="Close edit item"
+        >
+          <X className="size-5" aria-hidden />
+        </button>
+      </div>
       <div className="mb-3 mt-4 flex gap-2">
         {(["task", "habit", "metric"] as const).map((value) => (
           <button
