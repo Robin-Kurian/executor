@@ -10,6 +10,7 @@ import { lifeApi } from "./api";
 import { DateField } from "./DateField";
 import { LifeSheet } from "./LifeSheet";
 import { QuantityFields, quantityPayload } from "./QuantityFields";
+import { useLife } from "./LifeProvider";
 import { LifeArea, LifeButton, LifeField, WEEKDAYS, lifeChoiceClass, lifeDayChipClass } from "./ui";
 
 const ITEM_STATUS_OPTIONS = [
@@ -44,6 +45,8 @@ export function ItemEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { plans } = useLife();
+  const [planId, setPlanId] = useState(item.plan_id);
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description);
   const [startDate, setStartDate] = useState(item.start_date ?? "");
@@ -74,6 +77,7 @@ export function ItemEditor({
     setSaving(true);
     try {
       await lifeApi.updateItem(item.id, {
+        plan_id: planId,
         title,
         description,
         start_date: startDate || null,
@@ -116,10 +120,33 @@ export function ItemEditor({
         Edit item
       </h2>
       <div className="mt-4 space-y-4">
-        <LifeField value={title} onChange={(e) => setTitle(e.target.value)} />
-        <LifeArea className="min-h-20 lg:min-h-20" value={description} onChange={(e) => setDescription(e.target.value)} />
-        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
-          <div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <LifeField
+            className="order-1 col-span-2 lg:col-span-2"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <div className="order-3 lg:order-2">
+            <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-plan">
+              Plan
+            </label>
+            <Select
+              id="item-plan"
+              variant="surface"
+              options={plans.map((plan) => ({ value: plan.id, label: plan.name }))}
+              value={planId}
+              onChange={(value) => {
+                if (value) setPlanId(value);
+              }}
+              ariaLabel="Item plan"
+            />
+          </div>
+          <LifeArea
+            className="order-2 col-span-2 min-h-20 lg:order-3 lg:min-h-20"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <div className="order-3 lg:order-4">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">
               {recurrence !== "none" ? "Start date" : "Due date"}
             </p>
@@ -139,14 +166,12 @@ export function ItemEditor({
               />
             )}
           </div>
-          <div>
+          <div className="order-4 lg:order-6">
             <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-reminder-at">Reminder time</label>
             <LifeField id="item-reminder-at" type="datetime-local" value={reminderAt} onChange={(event) => setReminderAt(event.target.value)} />
             <p className="mt-1 text-xs text-[--color-text-muted]">Local time. Clear to disable.</p>
           </div>
-        </div>
-        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-3">
-          <div>
+          <div className="order-5 lg:order-7">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Priority</p>
             <div className="flex flex-wrap gap-1">
               {(["low", "medium", "high"] as const).map((value) => (
@@ -161,7 +186,7 @@ export function ItemEditor({
               ))}
             </div>
           </div>
-          <div>
+          <div className="order-5 lg:order-8">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Status</p>
             <Select
               variant="surface"
@@ -173,7 +198,7 @@ export function ItemEditor({
               ariaLabel="Item status"
             />
           </div>
-          <div>
+          <div className="order-4 lg:order-5">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Repeats</p>
             <Select
               variant="surface"
