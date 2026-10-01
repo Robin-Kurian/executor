@@ -12,8 +12,8 @@ export class WebPushTransport implements PushTransport {
       expirationTime: subscription.expiration_time ? new Date(subscription.expiration_time).getTime() : null,
       keys: { p256dh: subscription.p256dh, auth: subscription.auth },
     }, JSON.stringify(payload), {
-      TTL: 60,
-      urgency: "normal",
+      TTL: 60 * 60 * 24,
+      urgency: "high",
       vapidDetails: {
         subject: this.env.VAPID_SUBJECT,
         publicKey: this.env.VAPID_PUBLIC_KEY,

@@ -51,6 +51,6 @@ describe("push subscription service", () => {
     const result = await service.sendToUser("user-1", testNotificationPayload(), { send: async () => { throw { statusCode: 410 }; } });
     expect(result).toEqual({ delivered: 0, removed: 1, failed: 0 });
     expect(store.rows).toHaveLength(0);
-    expect(testNotificationPayload()).toMatchObject({ route: "/", tag: "executor-test" });
+    expect(testNotificationPayload(123)).toMatchObject({ route: "/", tag: "executor-test-123" });
   });
 });

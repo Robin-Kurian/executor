@@ -15,11 +15,11 @@ export interface PushTransport {
   send(subscription: StoredPushSubscription, payload: NotificationPayload): Promise<PushDeliveryResult>;
 }
 
-export const testNotificationPayload = (): NotificationPayload => ({
+export const testNotificationPayload = (id = Date.now()): NotificationPayload => ({
   title: "Executor notifications are ready",
   body: "This device can now receive Executor reminders.",
   route: "/",
-  tag: "executor-test",
+  tag: `executor-test-${id}`,
   icon: "/icons/icon-192.png",
   badge: "/icons/badge-96.png",
 });
