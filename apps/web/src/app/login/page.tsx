@@ -1,0 +1,9 @@
+"use client";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
+export default function LoginPage() {
+  const router = useRouter(); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [error, setError] = useState(""); const [pending, setPending] = useState(false);
+  async function submit(event: FormEvent) { event.preventDefault(); setPending(true); setError(""); const result = await authClient.signIn.email({ email, password }); setPending(false); if (result.error) { setError(result.error.message ?? "Invalid email or password"); return; } router.replace("/"); router.refresh(); }
+  return <main className="grid min-h-dvh place-items-center px-5"><form onSubmit={submit} className="w-full max-w-sm rounded-3xl border border-[--color-border] bg-[--color-surface] p-7 shadow-2xl"><h1 className="text-2xl font-semibold">Executor</h1><p className="mt-1 text-sm text-[--color-text-secondary]">Sign in to continue.</p><label className="mt-6 block text-sm">Email<input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-2 w-full rounded-xl border border-[--color-border] bg-[--color-bg] px-3 py-2.5 outline-none focus:border-[--color-accent]" /></label><label className="mt-4 block text-sm">Password<input required type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full rounded-xl border border-[--color-border] bg-[--color-bg] px-3 py-2.5 outline-none focus:border-[--color-accent]" /></label>{error ? <p role="alert" className="mt-4 text-sm text-rose-400">{error}</p> : null}<button disabled={pending} className="mt-6 w-full rounded-xl bg-[--color-accent] px-4 py-2.5 font-semibold text-[--color-bg] disabled:opacity-60">{pending ? "Signing in…" : "Sign in"}</button></form></main>;
+}

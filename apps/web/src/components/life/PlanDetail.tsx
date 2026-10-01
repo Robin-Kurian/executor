@@ -1,0 +1,306 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState, type FormEvent } from "react";
+import toast from "react-hot-toast";
+import { planDayProgress } from "@executor/domain/dates";
+import { executorPaths } from "@/lib/paths";
+import { isQuantityItem, nextQuantityState, nextToggleState } from "@executor/domain/quantity";
+import type { Plan, PlanDetailPayload, PlanStatus, TodayItem } from "@executor/domain/types";
+import { Select } from "@/components/ui/Select";
+import { lifeApi } from "./api";
+import { invalidateLifeCache, lifeCacheKey, loadLifeCache, useLifeQuery } from "./cache";
+import { DateField } from "./DateField";
+import { ItemEditor } from "./ItemEditor";
+import { useLife } from "./LifeProvider";
+import { QuantityTracker } from "./QuantityTracker";
+import {
+  EmptyState,
+  ItemCheckbox,
+  LifeArea,
+  LifeButton,
+  LifeField,
+} from "./ui";
+
+const PLAN_STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "paused", label: "Paused" },
+  { value: "completed", label: "Completed" },
+  { value: "archived", label: "Archived" },
+];
+
+export function PlanDetail({ planId }: { planId: string }) {
+  const { date, openAdd, bump, refreshToken } = useLife();
+  const planKey = lifeCacheKey("plan", `${planId}:${date}`);
+  const notesKey = lifeCacheKey("notes", planId);
+  const planQuery = useLifeQuery(planKey, () => lifeApi.plan(planId, date), refreshToken);
+  const notesQuery = useLifeQuery(
+    notesKey,
+    () => lifeApi.notes(`?plan_id=${planId}`),
+    refreshToken,
+  );
+  const [plan, setPlan] = useState(planQuery.data ?? null);
+  const [notes, setNotes] = useState(notesQuery.data ?? []);
+  const [note, setNote] = useState("");
+  const [editing, setEditing] = useState<TodayItem | null>(null);
+
+  useEffect(() => {
+    setPlan(planQuery.data ?? null);
+  }, [planQuery.data, planId]);
+
+  useEffect(() => {
+    setNotes(notesQuery.data ?? []);
+  }, [notesQuery.data, planId]);
+
+  async function savePlan(patch: Partial<Plan>) {
+    try {
+      const updated = await lifeApi.updatePlan(planId, patch);
+      setPlan((current) => (current ? { ...current, ...updated } : current));
+      bump();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save plan");
+    }
+  }
+
+  function applyItem(current: PlanDetailPayload, id: string, patch: Partial<TodayItem>): PlanDetailPayload {
+    const items = current.items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+    return {
+      ...current,
+      items,
+      completed_item_ids: items.filter((item) => item.completed).map((item) => item.id),
+    };
+  }
+
+  async function saveProgress(item: TodayItem, patch: { completed: boolean; value: number | null }) {
+    planQuery.setData((current) => (current ? applyItem(current, item.id, patch) : current));
+    invalidateLifeCache({
+      keep: [planKey, lifeCacheKey("today", date), lifeCacheKey("plans", 0), lifeCacheKey("plans", 1), lifeCacheKey("inbox")],
+    });
+    try {
+      await lifeApi.complete(item.id, { date, ...patch });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save");
+      bump();
+    }
+  }
+
+  async function toggle(item: TodayItem) {
+    await saveProgress(item, nextToggleState(item));
+  }
+
+  async function setProgress(item: TodayItem, value: number) {
+    await saveProgress(item, nextQuantityState(item, value));
+  }
+
+  async function addNote(e: FormEvent) {
+    e.preventDefault();
+    if (!note.trim()) return;
+    try {
+      await lifeApi.createNote({ content: note, plan_id: planId, date });
+      setNote("");
+      setNotes(await loadLifeCache(notesKey, () => lifeApi.notes(`?plan_id=${planId}`), { force: true }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not add note");
+    }
+  }
+
+  if (planQuery.error) return <p className="text-sm text-red-400">{planQuery.error}</p>;
+  if (!plan) return <p className="text-sm text-[--color-text-muted]">Loading…</p>;
+
+  const habits = plan.items.filter((item) => item.type === "habit" || item.type === "metric");
+  const tasks = plan.items.filter((item) => item.type === "task" || item.type === "note");
+  const waiting = plan.items.filter((item) => item.status === "waiting" || item.type === "waiting");
+  const day = planDayProgress(plan.start_date, plan.end_date, date);
+
+  return (
+    <div>
+      <Link href={executorPaths.plans} className="text-sm text-[--color-text-muted]">
+        ← Plans
+      </Link>
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">{plan.name}</h1>
+          {day ? (
+            <p className="mt-1 text-sm text-[--color-text-muted]">
+              Day {day.current} / {day.total}
+            </p>
+          ) : null}
+        </div>
+        <LifeButton onClick={() => openAdd({ planId, type: "task", date })}>Add item</LifeButton>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <LifeField
+          value={plan.name}
+          onChange={(e) => setPlan({ ...plan, name: e.target.value })}
+          onBlur={() => savePlan({ name: plan.name })}
+        />
+        <Select
+          variant="surface"
+          options={PLAN_STATUS_OPTIONS}
+          value={plan.status}
+          onChange={(val) => {
+            if (val) savePlan({ status: val as PlanStatus });
+          }}
+          ariaLabel="Plan status"
+        />
+        <LifeArea
+          className="sm:col-span-2"
+          value={plan.description}
+          placeholder="Description"
+          onChange={(e) => setPlan({ ...plan, description: e.target.value })}
+          onBlur={() => savePlan({ description: plan.description })}
+        />
+        <label className="text-sm text-[--color-text-muted]">
+          Start
+          <div className="mt-1">
+            <DateField
+              value={plan.start_date}
+              onChange={(next) => savePlan({ start_date: next })}
+              placeholder="No start date"
+              ariaLabel="Start date"
+            />
+          </div>
+        </label>
+        <label className="text-sm text-[--color-text-muted]">
+          End
+          <div className="mt-1">
+            <DateField
+              value={plan.end_date}
+              onChange={(next) => savePlan({ end_date: next })}
+              placeholder="No end date"
+              ariaLabel="End date"
+            />
+          </div>
+        </label>
+      </div>
+
+      <ItemGroup
+        title="Habits"
+        items={habits}
+        onToggle={toggle}
+        onProgress={setProgress}
+        onEdit={setEditing}
+      />
+      <ItemGroup
+        title="Tasks"
+        items={tasks.filter((item) => item.status !== "waiting")}
+        onToggle={toggle}
+        onProgress={setProgress}
+        onEdit={setEditing}
+      />
+      <ItemGroup
+        title="Waiting"
+        items={waiting}
+        onToggle={toggle}
+        onProgress={setProgress}
+        onEdit={setEditing}
+      />
+
+      {plan.items.length === 0 ? (
+        <div className="mt-8">
+          <EmptyState
+            title="No items in this plan"
+            body="Add a habit or a task to start tracking."
+            actions={
+              <LifeButton onClick={() => openAdd({ planId, type: "habit" })}>
+                Add habit
+              </LifeButton>
+            }
+          />
+        </div>
+      ) : null}
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Notes</h2>
+        <form onSubmit={addNote} className="mt-3 flex gap-2">
+          <LifeField
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={`Note for ${date}`}
+          />
+          <LifeButton type="submit">Add</LifeButton>
+        </form>
+        <ul className="mt-4 space-y-3">
+          {notes.map((row) => (
+            <li key={row.id} className="rounded-xl border border-[--color-border] px-3 py-3 text-sm">
+              <p className="text-xs text-[--color-text-muted]">{row.date ?? "No date"}</p>
+              <p className="mt-1 whitespace-pre-wrap">{row.content}</p>
+              <button
+                type="button"
+                className="mt-2 text-xs text-red-400"
+                onClick={async () => {
+                  await lifeApi.deleteNote(row.id);
+                  setNotes(
+                    await loadLifeCache(notesKey, () => lifeApi.notes(`?plan_id=${planId}`), {
+                      force: true,
+                    }),
+                  );
+                }}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {editing ? (
+        <ItemEditor
+          item={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            bump();
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ItemGroup({
+  title,
+  items,
+  onToggle,
+  onProgress,
+  onEdit,
+}: {
+  title: string;
+  items: TodayItem[];
+  onToggle: (item: TodayItem) => void;
+  onProgress: (item: TodayItem, value: number) => void;
+  onEdit: (item: TodayItem) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section className="mt-8">
+      <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-[--color-text-muted]">
+        {title}
+      </h2>
+      <ul className="mt-2 divide-y divide-[--color-border] rounded-2xl border border-[--color-border]">
+        {items.map((item) => (
+          <li key={item.id} className="flex items-start gap-3 px-3 py-3">
+            <ItemCheckbox
+              checked={item.completed}
+              onToggle={() => onToggle(item)}
+              label={item.title}
+            />
+            <div className="min-w-0 flex-1">
+              <button type="button" className="w-full text-left" onClick={() => onEdit(item)}>
+                <p className="text-sm font-medium">{item.title}</p>
+                <p className="text-xs text-[--color-text-muted]">
+                  {item.recurrence !== "none" ? item.recurrence : item.due_date || "No date"}
+                  {item.priority !== "medium" ? ` · ${item.priority}` : ""}
+                </p>
+              </button>
+              {isQuantityItem(item) ? (
+                <QuantityTracker item={item} value={item.value} onChange={(value) => onProgress(item, value)} />
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}

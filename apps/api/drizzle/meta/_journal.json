@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790797945940,
+      "tag": "0000_redundant_korg",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790797995425,
+      "tag": "0001_blushing_blink",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790803193220,
+      "tag": "0002_tranquil_korvac",
+      "breakpoints": true
+    }
+  ]
+}

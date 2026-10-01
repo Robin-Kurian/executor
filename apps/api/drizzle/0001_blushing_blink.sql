@@ -1,0 +1,5 @@
+ALTER TABLE "plan_items" ADD CONSTRAINT "plan_items_type_check" CHECK ("plan_items"."type" in ('habit','task','metric','note','waiting'));--> statement-breakpoint
+ALTER TABLE "plan_items" ADD CONSTRAINT "plan_items_priority_check" CHECK ("plan_items"."priority" in ('low','medium','high'));--> statement-breakpoint
+ALTER TABLE "plan_items" ADD CONSTRAINT "plan_items_status_check" CHECK ("plan_items"."status" in ('todo','in_progress','done','cancelled','waiting','active'));--> statement-breakpoint
+ALTER TABLE "plan_items" ADD CONSTRAINT "plan_items_recurrence_check" CHECK ("plan_items"."recurrence" in ('none','daily','weekdays','weekly','custom'));--> statement-breakpoint
+ALTER TABLE "plans" ADD CONSTRAINT "plans_status_check" CHECK ("plans"."status" in ('active','paused','completed','archived'));

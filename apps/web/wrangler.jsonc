@@ -1,0 +1,33 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "account_id": "35a9b4a5c36a8a4974f8b4bdb46387b3",
+  "name": "executor-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
+  "keep_vars": true,
+  "routes": [
+    {
+      "pattern": "executor.itsrobin.dev",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "executor-web"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "NEXT_PUBLIC_API_URL": "https://api.executor.itsrobin.dev",
+    "NODE_ENV": "production"
+  }
+}

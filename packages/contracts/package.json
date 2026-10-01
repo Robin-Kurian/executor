@@ -1,0 +1,10 @@
+{
+  "name": "@executor/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "vitest run", "typecheck": "tsc -p tsconfig.json" },
+  "dependencies": { "@executor/domain": "*", "@hono/zod-openapi": "latest", "zod": "latest" },
+  "devDependencies": { "typescript": "latest", "vitest": "latest" }
+}

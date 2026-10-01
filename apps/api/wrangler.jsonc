@@ -1,0 +1,34 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "account_id": "35a9b4a5c36a8a4974f8b4bdb46387b3",
+  "name": "executor-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "APP_ENV": "local",
+    "WEB_ORIGIN": "http://localhost:3000",
+    "BETTER_AUTH_URL": "http://localhost:8787"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.05 }
+  },
+  "env": {
+    "production": {
+      "name": "executor-api",
+      "routes": [
+        {
+          "pattern": "api.executor.itsrobin.dev",
+          "custom_domain": true
+        }
+      ],
+      "vars": {
+        "APP_ENV": "production",
+        "WEB_ORIGIN": "https://executor.itsrobin.dev",
+        "BETTER_AUTH_URL": "https://api.executor.itsrobin.dev"
+      }
+    }
+  }
+}

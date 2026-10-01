@@ -1,0 +1,18 @@
+{
+  "name": "@executor/domain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./dates": "./src/dates.ts",
+    "./quantity": "./src/quantity.ts",
+    "./recurrence": "./src/recurrence.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": { "typescript": "latest", "vitest": "latest" }
+}

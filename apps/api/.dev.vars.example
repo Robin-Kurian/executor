@@ -1,0 +1,8 @@
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+BETTER_AUTH_SECRET=replace-with-at-least-32-random-characters
+APP_ENV=local
+WEB_ORIGIN=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:8787
+VAPID_PUBLIC_KEY=replace-with-generated-public-key
+VAPID_PRIVATE_KEY=replace-with-generated-private-key
+VAPID_SUBJECT=mailto:you@example.com
