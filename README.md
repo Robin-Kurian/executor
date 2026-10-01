@@ -1,4 +1,3 @@
-![Executor](https://res.cloudinary.com/itsrobin/image/upload/v1790838489/Executor_Productivity_App_Hero_Medium_djoxok.jpg)
 # Executor
 
 A self-hostable personal planning app for habits, tasks, schedules, and reminders.
@@ -11,16 +10,19 @@ A self-hostable personal planning app for habits, tasks, schedules, and reminder
 - `packages/contracts`: shared Zod request schemas.
 - PostgreSQL access is isolated in the API database adapter and repositories.
 - Better Auth is hosted by the API and stores users/sessions in PostgreSQL.
+- API access is restricted to the configured administrator email and `admin` role; protected account provisioning uses a separate bootstrap secret.
 - The frontend is an installable PWA; standards-based Web Push subscriptions are owned by authenticated users and stored in PostgreSQL.
 
 ## Local setup
 
 1. Run `npm install`.
-2. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars` and set the target `DATABASE_URL` and a random `BETTER_AUTH_SECRET` of at least 32 characters.
+2. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars`. Set `DATABASE_URL`, `ALLOWED_ADMIN_EMAIL`, and random 32+-character `BETTER_AUTH_SECRET` and `ADMIN_BOOTSTRAP_TOKEN` values. Do not use values from an example file in a real deployment.
 3. Copy `apps/web/.env.example` to `apps/web/.env.local` if the API is not at `http://localhost:8787`.
 4. Run `npm run db:migrate`.
 5. Run `npm run dev`.
-6. Create the owner once with `OWNER_EMAIL=... OWNER_PASSWORD=... npm run auth:bootstrap-owner -w @executor/api` while the API is running.
+6. Create the allowlisted administrator once with `OWNER_EMAIL=... OWNER_PASSWORD=... npm run auth:bootstrap-owner -w @executor/api` while the API is running. `OWNER_EMAIL` must exactly match `ALLOWED_ADMIN_EMAIL`.
+
+If the API is not reachable while signing in, run `npm run dev:api` in a separate terminal and confirm `curl http://localhost:8787/health` returns `200`. See [deployment](docs/deployment.md) for the full local and production security setup.
 
 Local credentials belong only in `apps/api/.dev.vars`; the frontend’s local public API origin belongs in `apps/web/.env.local`. Both are ignored by Git.
 

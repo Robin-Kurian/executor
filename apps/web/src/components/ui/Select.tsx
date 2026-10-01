@@ -31,7 +31,7 @@ const TRIGGER_CLASS: Record<"pill" | "field" | "surface", string> = {
   field:
     "cms-field flex w-full cursor-pointer items-center justify-between text-left font-normal",
   surface:
-    "flex w-full cursor-pointer items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-left text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent)]/50 focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]",
+    "apple-glass flex w-full cursor-pointer items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm text-[var(--color-text-primary)] transition-all duration-200 hover:-translate-y-px focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]",
 };
 
 const MENU_MAX_H = 240;

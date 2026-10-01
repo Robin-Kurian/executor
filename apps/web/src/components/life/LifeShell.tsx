@@ -28,13 +28,13 @@ function controlClass({
   accent?: boolean;
 } = {}) {
   return cn(
-    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-4 py-2.5 text-base font-medium leading-none shadow-sm transition-colors",
+    "apple-glass inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border px-4 text-base font-medium leading-none transition-all duration-200",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/60",
     accent
       ? "border-[--color-accent] bg-[--color-accent] text-[--color-bg] shadow-none hover:bg-[--color-accent-hover]"
       : active
-        ? "border-[--color-accent] bg-[--color-accent]/15 text-[--color-text-primary] shadow-none"
-        : "border-[--color-border] bg-[--color-surface] text-[--color-text-secondary] hover:border-[--color-text-muted] hover:bg-[--color-surface-raised] hover:text-[--color-text-primary]",
+        ? "apple-glass-active text-[--color-text-primary]"
+        : "text-[--color-text-secondary] hover:-translate-y-px hover:text-[--color-text-primary]",
   );
 }
 
@@ -44,11 +44,11 @@ function tabIsActive(tab: (typeof TABS)[number], pathname: string) {
 
 function mobileTabClass(active: boolean) {
   return cn(
-    "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-medium tracking-wide",
-    "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/50",
+    "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[10px] font-medium tracking-wide",
+    "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/50",
     active
-      ? "text-[--color-accent]"
-      : "text-[--color-text-muted] hover:text-[--color-text-primary]",
+      ? "mobile-tab-active text-[--color-text-primary]"
+      : "text-[--color-text-muted] hover:bg-white/5 hover:text-[--color-text-primary]",
   );
 }
 
@@ -67,9 +67,6 @@ function MobileTab({
       aria-current={active ? "page" : undefined}
       className={mobileTabClass(active)}
     >
-      {active ? (
-        <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-[--color-accent]" />
-      ) : null}
       <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} aria-hidden />
       {tab.label}
     </Link>
@@ -116,7 +113,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh bg-[--color-bg] text-[--color-text-primary] [&_a]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer">
+    <div className="min-h-dvh bg-transparent text-[--color-text-primary] [&_a]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer">
       <header className="sticky top-0 z-30 overflow-visible">
         <div
           className="pointer-events-none absolute inset-0 border-b border-[--color-border] bg-[--color-bg]/90 backdrop-blur"
@@ -146,7 +143,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={handleAdd}
@@ -155,19 +152,18 @@ function ShellInner({ children }: { children: ReactNode }) {
               <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
               Add
             </button>
-            <ThemeToggle tooltipPlacement="bottom" />
-            <NotificationSettings />
-            <button
-              type="button"
-              onClick={logout}
-              aria-label="Log out"
-              className={cn(
-                controlClass(),
-                "px-2.5 text-status-danger hover:border-[color:var(--status-danger-border)] hover:bg-[color:var(--status-danger-bg)] hover:text-status-danger",
-              )}
-            >
-              <LogOut className="h-5 w-5" aria-hidden />
-            </button>
+            <div className="header-action-group">
+              <ThemeToggle tooltipPlacement="bottom" className="header-icon-control" />
+              <NotificationSettings className="header-icon-control" />
+              <button
+                type="button"
+                onClick={logout}
+                aria-label="Log out"
+                className="header-icon-control rounded-xl text-status-danger hover:text-status-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/60"
+              >
+                <LogOut className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -178,11 +174,11 @@ function ShellInner({ children }: { children: ReactNode }) {
         aria-label="Executor"
         aria-hidden={addOpen || undefined}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 border-t border-[--color-border] bg-[--color-bg]/95 pb-[max(0.35rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden",
+          "fixed inset-x-0 bottom-0 z-40 border-t border-[--color-border]/70 bg-[--color-bg]/78 pb-[max(0.35rem,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(0,0,0,.12)] backdrop-blur-xl lg:hidden",
           addOpen && "invisible pointer-events-none",
         )}
       >
-        <div className="flex items-end px-1 pt-1">
+        <div className="flex items-end gap-1.5 px-2 pt-1">
           {TABS.slice(0, 2).map((tab) => (
             <MobileTab key={tab.href} tab={tab} pathname={pathname} />
           ))}
@@ -190,11 +186,9 @@ function ShellInner({ children }: { children: ReactNode }) {
             type="button"
             onClick={handleAdd}
             aria-label="Add"
-            className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 pb-2 pt-0 text-[10px] font-medium tracking-wide text-[--color-accent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/50"
+            className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[10px] font-medium tracking-wide text-[--color-text-secondary] transition-colors hover:bg-white/5 hover:text-[--color-text-primary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/50"
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[--color-accent] text-[--color-bg] shadow-md shadow-[--color-accent]/25">
-              <Plus className="h-5 w-5" strokeWidth={2.4} aria-hidden />
-            </span>
+            <Plus className="h-5 w-5" strokeWidth={2.1} aria-hidden />
             Add
           </button>
           {TABS.slice(2).map((tab) => (

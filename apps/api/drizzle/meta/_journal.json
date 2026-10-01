@@ -36,6 +36,13 @@
       "when": 1790830849294,
       "tag": "0004_magenta_elektra",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790852794772,
+      "tag": "0005_bouncy_korg",
+      "breakpoints": true
     }
   ]
 }

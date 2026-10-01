@@ -14,6 +14,7 @@ import { lifeCacheKey, useLifeQuery } from "./cache";
 import { ItemEditor } from "./ItemEditor";
 import { useLife } from "./LifeProvider";
 import { EmptyState, LifeButton } from "./ui";
+import { ListSkeleton } from "./LoadingSkeleton";
 
 function InboxChip({
   children,
@@ -79,7 +80,7 @@ export function InboxView() {
         <LifeButton onClick={() => openAdd({ type: "task", date: null })}>Add undated task</LifeButton>
       </div>
       {error ? <p className="mt-6 text-sm text-red-400">{error}</p> : null}
-      {loading && !data ? <p className="mt-6 text-sm text-[--color-text-muted]">Loading…</p> : null}
+      {loading && !data ? <ListSkeleton /> : null}
       {!loading && items.length === 0 ? (
         <div className="mt-8">
           <EmptyState
@@ -94,7 +95,7 @@ export function InboxView() {
             return (
               <li
                 key={item.id}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 transition-colors hover:border-[var(--color-accent)]/50"
+                className="apple-glass rounded-2xl border px-4 py-4 transition-all duration-200 hover:-translate-y-0.5"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <div className="min-w-0 flex-1">

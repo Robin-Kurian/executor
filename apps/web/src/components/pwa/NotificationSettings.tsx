@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, BellOff, LoaderCircle, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { EXECUTOR_API } from "@/lib/paths";
@@ -19,7 +20,7 @@ function serialize(subscription: PushSubscription) {
   return { endpoint: value.endpoint, expirationTime: value.expirationTime ?? null, keys: value.keys };
 }
 
-export function NotificationSettings() {
+export function NotificationSettings({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [supported, setSupported] = useState<boolean | null>(null);
   const [permission, setPermission] = useState<NotificationPermission>("default");
@@ -93,7 +94,10 @@ export function NotificationSettings() {
     try {
       const result = await lifeFetch<PushTestResult>(`${EXECUTOR_API}/push/test`, { method: "POST", body: "{}" });
       if (result.delivered < 1) throw new Error("The push service did not accept a notification");
-      toast.success(`Push accepted for ${result.delivered} device${result.delivered === 1 ? "" : "s"}`);
+      toast.success(`Push accepted for ${result.delivered} device${result.delivered === 1 ? "" : "s"}`, {
+        className: "executor-toast push-success-toast",
+        duration: 4_000,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not send test notification");
     } finally {
@@ -104,21 +108,22 @@ export function NotificationSettings() {
   const enabled = permission === "granted" && Boolean(subscription);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label="Notification settings" title="Notification settings" className="relative inline-flex items-center justify-center rounded-xl border border-[--color-border] bg-[--color-surface] p-2.5 text-[--color-text-secondary] shadow-sm transition-colors hover:border-[--color-text-muted] hover:bg-[--color-surface-raised] hover:text-[--color-text-primary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/60">
+      <button type="button" onClick={() => setOpen(true)} aria-label="Notification settings" title="Notification settings" className={cn("apple-glass relative inline-flex items-center justify-center rounded-xl border p-2.5 text-[--color-text-secondary] transition-all duration-200 hover:-translate-y-px hover:text-[--color-text-primary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/60", className)}>
         {enabled ? <Bell className="h-5 w-5 text-[--color-accent]" /> : <BellOff className="h-5 w-5" />}
         {enabled ? <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[--color-accent]" /> : null}
       </button>
-      {open ? (
-        <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm sm:p-5" role="dialog" aria-modal="true" aria-labelledby="notification-settings-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
-          <section className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-[--color-border] bg-[--color-surface] p-6 shadow-2xl">
+      {open
+        ? createPortal(
+        <div className="notification-settings-backdrop fixed inset-0 z-[80] grid place-items-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm sm:p-5" role="dialog" aria-modal="true" aria-labelledby="notification-settings-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+          <section className="notification-settings-glass max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl p-6 shadow-[0_24px_60px_rgba(0,0,0,.42)] backdrop-blur-3xl">
             <div className="flex items-start justify-between gap-4">
-              <div><h2 id="notification-settings-title" className="text-xl font-semibold">Notifications</h2><p className="mt-1 text-sm leading-6 text-[--color-text-secondary]">Manage this installed browser or device independently.</p></div>
+              <div><h2 id="notification-settings-title" className="text-xl font-semibold">Notifications</h2><p className="mt-1 text-sm leading-6 text-[--color-text-secondary]">Stay on track with timely reminders.</p></div>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close notification settings" className="rounded-lg p-2 text-[--color-text-secondary] hover:bg-[--color-surface-raised]"><X className="h-5 w-5" /></button>
             </div>
-            <div className="mt-5 rounded-2xl border border-[--color-border] bg-[--color-bg] p-4">
-              <p className="text-sm font-medium">{supported === false ? "Not supported" : enabled ? "Enabled on this device" : permission === "denied" ? "Blocked by browser" : "Not enabled"}</p>
+            <div className="notification-settings-glass-panel mt-5 rounded-2xl p-4 backdrop-blur-2xl">
+              <p className="text-sm font-medium">{supported === false ? "Not available here" : enabled ? "Reminders are on" : permission === "denied" ? "Notifications are blocked" : "Reminders are off"}</p>
               <p className="mt-1 text-sm leading-6 text-[--color-text-secondary]">
-                {supported === false ? "This browser does not expose service workers and Web Push." : permission === "denied" ? "Allow notifications for this site in the browser’s site settings, then return here." : enabled ? "Executor can send reminders even when this window is closed." : "Permission is requested only after you choose Enable."}
+                {supported === false ? "Try using Executor in a supported browser to receive reminders." : permission === "denied" ? "Allow notifications in your browser settings, then come back here." : enabled ? "You’ll receive reminders on this device." : "Turn them on to get reminders when something needs your attention."}
               </p>
             </div>
             {failure ? (
@@ -128,13 +133,15 @@ export function NotificationSettings() {
               </div>
             ) : null}
             <div className="mt-5 grid gap-3">
-              {!enabled && permission !== "denied" && supported !== false ? <button type="button" disabled={pending || supported === null} onClick={enable} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[--color-accent] px-4 py-3 font-semibold text-[--color-bg] disabled:opacity-50">{pending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Bell className="h-5 w-5" />}Enable notifications</button> : null}
-              {enabled ? <button type="button" disabled={pending} onClick={sendTest} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[--color-accent] px-4 py-3 font-semibold text-[--color-bg] disabled:opacity-50">{pending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}Send test notification</button> : null}
+              {!enabled && permission !== "denied" && supported !== false ? <button type="button" disabled={pending || supported === null} onClick={enable} className="notification-settings-primary inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold disabled:opacity-50">{pending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Bell className="h-5 w-5" />}Enable notifications</button> : null}
+              {enabled ? <button type="button" disabled={pending} onClick={sendTest} className="notification-settings-primary inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold disabled:opacity-50">{pending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}Send test notification</button> : null}
               {subscription ? <button type="button" disabled={pending} onClick={disable} className={cn("rounded-xl border border-[--color-border] px-4 py-3 font-medium text-[--color-text-secondary] hover:bg-[--color-surface-raised]", pending && "opacity-50")}>Disable on this device</button> : null}
             </div>
           </section>
-        </div>
-      ) : null}
+        </div>,
+        document.body,
+      )
+        : null}
     </>
   );
 }

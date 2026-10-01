@@ -14,6 +14,7 @@ import { invalidateLifeCache, lifeCacheKey, useLifeQuery } from "./cache";
 import { useLife } from "./LifeProvider";
 import { QuantityTracker } from "./QuantityTracker";
 import { EmptyState, ItemCheckbox } from "./ui";
+import { CalendarSkeleton } from "./LoadingSkeleton";
 
 function currentMonth(date: string) {
   return date.slice(0, 7);
@@ -99,7 +100,7 @@ export function CalendarView() {
   const calendarKey = lifeCacheKey("calendar", month);
   const todayKey = lifeCacheKey("today", date);
 
-  const { data: calendarData, loading, setData: setCalendar } = useLifeQuery(
+  const { data: calendarData, setData: setCalendar } = useLifeQuery(
     calendarKey,
     () => lifeApi.calendar(month),
     refreshToken,
@@ -169,6 +170,8 @@ export function CalendarView() {
     if (nextDate !== date) setExpanded(false);
   }
 
+  if (!calendarData) return <div><div className="mb-6 flex items-center justify-between"><h1 className="text-3xl font-semibold tracking-tight">Calendar</h1></div><CalendarSkeleton /></div>;
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -198,9 +201,6 @@ export function CalendarView() {
         </div>
       </div>
       <p className="mb-4 text-sm text-[var(--color-text-muted)]">{monthLabel(month)}</p>
-      {loading && !calendarData ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>
-      ) : null}
       <div className="grid grid-cols-7 gap-1 text-center text-xs text-[var(--color-text-muted)]">
         {["S", "M", "T", "W", "T", "F", "S"].map((label, i) => (
           <div key={`${label}-${i}`} className="py-1">
@@ -230,7 +230,7 @@ export function CalendarView() {
                 "flex flex-col items-center gap-1 rounded-xl py-2 text-sm tabular-nums transition-colors",
                 "hover:bg-[var(--color-surface)]",
                 isSelected &&
-                  "bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)]",
+                  "calendar-day-selected text-[var(--color-text-primary)]",
                 !isSelected && allDone && "bg-[var(--color-accent)]/20 text-[var(--color-text-primary)]",
                 !isSelected && dayHasItems && !allDone && "text-[var(--color-text-primary)]",
                 !isSelected && !dayHasItems && "text-[var(--color-text-muted)]",
@@ -240,11 +240,9 @@ export function CalendarView() {
               <span className={cn(isToday && "font-semibold")}>{Number(day.date.slice(8))}</span>
               <span
                 className={cn(
-                  "h-1.5 w-5 overflow-hidden rounded-full",
+                  "calendar-progress-track h-2 w-6 overflow-hidden rounded-full",
                   dayHasItems
-                    ? isSelected
-                      ? "bg-[var(--color-bg)]/35"
-                      : "bg-[var(--color-text-muted)]/55"
+                    ? "bg-[var(--color-text-muted)]/55"
                     : "bg-transparent",
                 )}
               >
@@ -252,7 +250,7 @@ export function CalendarView() {
                   <span
                     className={cn(
                       "block h-full rounded-full",
-                      isSelected ? "bg-[var(--color-bg)]" : "bg-[var(--color-accent)]",
+                      "bg-[var(--color-accent)]",
                     )}
                     style={{ width: `${Math.max(pct, day.completed > 0 ? 12 : 0)}%` }}
                   />

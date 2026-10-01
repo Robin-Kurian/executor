@@ -10,13 +10,15 @@
       "BETTER_AUTH_SECRET",
       "VAPID_PUBLIC_KEY",
       "VAPID_PRIVATE_KEY",
-      "VAPID_SUBJECT"
+      "VAPID_SUBJECT",
+      "ADMIN_BOOTSTRAP_TOKEN"
     ]
   },
   "vars": {
     "APP_ENV": "local",
     "WEB_ORIGIN": "http://localhost:3000",
-    "BETTER_AUTH_URL": "http://localhost:8787"
+    "BETTER_AUTH_URL": "http://localhost:8787",
+    "ALLOWED_ADMIN_EMAIL": "admin@example.com"
   },
   "observability": {
     "enabled": true,

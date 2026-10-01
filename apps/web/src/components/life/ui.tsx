@@ -11,10 +11,10 @@ export const lifeFieldClass =
 
 export function lifeChoiceClass(active: boolean) {
   return cn(
-    "cursor-pointer rounded-full px-3 py-1.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50",
+    "apple-glass cursor-pointer rounded-full border px-3 py-1.5 text-sm transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50",
     active
-      ? "bg-[var(--color-surface)] font-medium text-[var(--color-text-primary)] shadow-sm"
-      : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]/80 hover:text-[var(--color-text-primary)]",
+      ? "apple-glass-active font-medium text-[var(--color-text-primary)]"
+      : "text-[var(--color-text-muted)] hover:-translate-y-px hover:text-[var(--color-text-primary)]",
   );
 }
 
@@ -49,7 +49,7 @@ export function LifeButton({
   className,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost" | "danger";
+  variant?: "primary" | "glass" | "ghost" | "danger";
 }) {
   return (
     <button
@@ -61,6 +61,7 @@ export function LifeButton({
         "disabled:pointer-events-none disabled:opacity-50",
         variant === "primary" &&
           "bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)]",
+        variant === "glass" && "life-glass-button rounded-full px-5",
         variant === "ghost" &&
           "border border-[var(--color-border)] bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]",
         variant === "danger" &&

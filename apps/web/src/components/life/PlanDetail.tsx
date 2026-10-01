@@ -21,6 +21,7 @@ import {
   LifeButton,
   LifeField,
 } from "./ui";
+import { PlanSkeleton } from "./LoadingSkeleton";
 
 const PLAN_STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -43,22 +44,42 @@ export function PlanDetail({ planId }: { planId: string }) {
   const [notes, setNotes] = useState(notesQuery.data ?? []);
   const [note, setNote] = useState("");
   const [editing, setEditing] = useState<TodayItem | null>(null);
+  const [planDirty, setPlanDirty] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
 
   useEffect(() => {
     setPlan(planQuery.data ?? null);
+    setPlanDirty(false);
   }, [planQuery.data, planId]);
 
   useEffect(() => {
     setNotes(notesQuery.data ?? []);
   }, [notesQuery.data, planId]);
 
-  async function savePlan(patch: Partial<Plan>) {
+  function updatePlan(patch: Partial<Plan>) {
+    setPlan((current) => (current ? { ...current, ...patch } : current));
+    setPlanDirty(true);
+  }
+
+  async function savePlan() {
+    if (!plan || !planDirty) return;
+    setSavingPlan(true);
     try {
-      const updated = await lifeApi.updatePlan(planId, patch);
+      const updated = await lifeApi.updatePlan(planId, {
+        name: plan.name,
+        description: plan.description,
+        status: plan.status,
+        start_date: plan.start_date,
+        end_date: plan.end_date,
+      });
       setPlan((current) => (current ? { ...current, ...updated } : current));
-      bump();
+      planQuery.setData((current) => (current ? { ...current, ...updated } : current));
+      setPlanDirty(false);
+      toast.success("Plan saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save plan");
+    } finally {
+      setSavingPlan(false);
     }
   }
 
@@ -105,7 +126,7 @@ export function PlanDetail({ planId }: { planId: string }) {
   }
 
   if (planQuery.error) return <p className="text-sm text-red-400">{planQuery.error}</p>;
-  if (!plan) return <p className="text-sm text-[--color-text-muted]">Loading…</p>;
+  if (!plan) return <PlanSkeleton />;
 
   const habits = plan.items.filter((item) => item.type === "habit" || item.type === "metric");
   const tasks = plan.items.filter((item) => item.type === "task" || item.type === "note");
@@ -132,15 +153,14 @@ export function PlanDetail({ planId }: { planId: string }) {
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <LifeField
           value={plan.name}
-          onChange={(e) => setPlan({ ...plan, name: e.target.value })}
-          onBlur={() => savePlan({ name: plan.name })}
+          onChange={(e) => updatePlan({ name: e.target.value })}
         />
         <Select
           variant="surface"
           options={PLAN_STATUS_OPTIONS}
           value={plan.status}
           onChange={(val) => {
-            if (val) savePlan({ status: val as PlanStatus });
+            if (val) updatePlan({ status: val as PlanStatus });
           }}
           ariaLabel="Plan status"
         />
@@ -148,15 +168,14 @@ export function PlanDetail({ planId }: { planId: string }) {
           className="sm:col-span-2"
           value={plan.description}
           placeholder="Description"
-          onChange={(e) => setPlan({ ...plan, description: e.target.value })}
-          onBlur={() => savePlan({ description: plan.description })}
+          onChange={(e) => updatePlan({ description: e.target.value })}
         />
         <label className="text-sm text-[--color-text-muted]">
           Start
           <div className="mt-1">
             <DateField
               value={plan.start_date}
-              onChange={(next) => savePlan({ start_date: next })}
+              onChange={(next) => updatePlan({ start_date: next })}
               placeholder="No start date"
               ariaLabel="Start date"
             />
@@ -167,12 +186,18 @@ export function PlanDetail({ planId }: { planId: string }) {
           <div className="mt-1">
             <DateField
               value={plan.end_date}
-              onChange={(next) => savePlan({ end_date: next })}
+              onChange={(next) => updatePlan({ end_date: next })}
               placeholder="No end date"
               ariaLabel="End date"
             />
           </div>
         </label>
+      </div>
+      <div className="mt-4 flex items-center justify-end gap-3">
+        {planDirty ? <p className="text-sm text-[var(--color-text-muted)]">Unsaved changes</p> : null}
+        <LifeButton onClick={savePlan} disabled={!planDirty || savingPlan}>
+          {savingPlan ? "Saving…" : "Save changes"}
+        </LifeButton>
       </div>
 
       <ItemGroup
@@ -223,7 +248,7 @@ export function PlanDetail({ planId }: { planId: string }) {
         </form>
         <ul className="mt-4 space-y-3">
           {notes.map((row) => (
-            <li key={row.id} className="rounded-xl border border-[--color-border] px-3 py-3 text-sm">
+            <li key={row.id} className="apple-glass rounded-xl border px-3 py-3 text-sm">
               <p className="text-xs text-[--color-text-muted]">{row.date ?? "No date"}</p>
               <p className="mt-1 whitespace-pre-wrap">{row.content}</p>
               <button
@@ -278,7 +303,7 @@ function ItemGroup({
       <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-[--color-text-muted]">
         {title}
       </h2>
-      <ul className="mt-2 divide-y divide-[--color-border] rounded-2xl border border-[--color-border]">
+      <ul className="apple-glass mt-2 divide-y divide-[--color-border] rounded-2xl border">
         {items.map((item) => (
           <li key={item.id} className="flex items-start gap-3 px-3 py-3">
             <ItemCheckbox

@@ -12,6 +12,11 @@ export function createAuth(env: RuntimeEnv) {
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: [env.WEB_ORIGIN],
     database: drizzleAdapter(createDb(env.DATABASE_URL), { provider: "pg", schema }),
+    user: {
+      additionalFields: {
+        role: { type: "string", required: false, input: false },
+      },
+    },
     emailAndPassword: { enabled: true, autoSignIn: true },
     session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
     advanced: {

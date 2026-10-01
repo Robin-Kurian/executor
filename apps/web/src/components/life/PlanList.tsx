@@ -8,6 +8,7 @@ import { lifeApi } from "./api";
 import { lifeCacheKey, useLifeQuery } from "./cache";
 import { useLife } from "./LifeProvider";
 import { EmptyState, LifeButton, LifeField, LifeToggle } from "./ui";
+import { ListSkeleton } from "./LoadingSkeleton";
 
 export function PlanList() {
   const { openAdd, refreshToken, bump } = useLife();
@@ -50,7 +51,7 @@ export function PlanList() {
           onChange={(e) => setName(e.target.value)}
           placeholder="New plan name"
         />
-        <LifeButton type="submit" disabled={saving}>
+        <LifeButton type="submit" variant="glass" disabled={saving}>
           Create
         </LifeButton>
       </form>
@@ -64,9 +65,7 @@ export function PlanList() {
       </div>
 
       {error ? <p className="mt-6 text-sm text-red-400">{error}</p> : null}
-      {loading && !data ? (
-        <p className="mt-6 text-sm text-[--color-text-muted]">Loading plans…</p>
-      ) : null}
+      {loading && !data ? <ListSkeleton /> : null}
       {!loading && plans.length === 0 ? (
         <div className="mt-8">
           <EmptyState
@@ -84,7 +83,7 @@ export function PlanList() {
             <li key={plan.id}>
               <Link
                 href={executorPaths.plan(plan.id)}
-                className="block rounded-2xl border border-[--color-border] bg-[--color-surface] px-4 py-4"
+                className="apple-glass block rounded-2xl border px-4 py-4 transition-all duration-200 hover:-translate-y-0.5"
               >
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-lg font-semibold">{plan.name}</h2>

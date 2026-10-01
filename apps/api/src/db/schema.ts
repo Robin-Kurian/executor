@@ -71,9 +71,13 @@ export const planNotes = pgTable("plan_notes", {
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(), name: text("name").notNull(), email: text("email").notNull(),
+  role: varchar("role", { length: 20 }).notNull().default("member"),
   emailVerified: boolean("email_verified").notNull().default(false), image: text("image"),
   createdAt: timestamp("created_at").notNull().defaultNow(), updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table) => [uniqueIndex("user_email_unique").on(table.email)]);
+}, (table) => [
+  check("user_role_check", sql`${table.role} in ('member', 'admin')`),
+  uniqueIndex("user_email_unique").on(table.email),
+]);
 export const session = pgTable("session", {
   id: text("id").primaryKey(), expiresAt: timestamp("expires_at").notNull(), token: text("token").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(), updatedAt: timestamp("updated_at").notNull().defaultNow(),

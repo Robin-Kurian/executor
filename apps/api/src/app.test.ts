@@ -6,6 +6,8 @@ const env = {
   BETTER_AUTH_SECRET: "test-secret-that-is-at-least-thirty-two-characters",
   BETTER_AUTH_URL: "http://localhost:8787",
   WEB_ORIGIN: "http://localhost:3000",
+  ALLOWED_ADMIN_EMAIL: "admin@example.com",
+  ADMIN_BOOTSTRAP_TOKEN: "test-bootstrap-token-that-is-at-least-thirty-two-characters",
   APP_ENV: "local",
   VAPID_PUBLIC_KEY: "test-public-vapid-key-that-is-long-enough",
   VAPID_PRIVATE_KEY: "test-private-vapid-key-that-is-long-enough",
@@ -25,5 +27,14 @@ describe("public API", () => {
     const response = await createApp().request("/api/v1/inbox", {}, env);
     expect(response.status).toBe(401);
     expect(await response.json()).toMatchObject({ error: "Unauthorized" });
+  });
+  it("rejects credential requests for emails outside the allowlist", async () => {
+    const response = await createApp().request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Someone", email: "someone@example.com", password: "a-long-enough-password" }),
+    }, env);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: "Forbidden" });
   });
 });

@@ -12,6 +12,7 @@ import { ItemEditor } from "./ItemEditor";
 import { useLife } from "./LifeProvider";
 import { QuantityTracker } from "./QuantityTracker";
 import { EmptyState, ItemCheckbox, LifeButton, ProgressIndicator } from "./ui";
+import { ListSkeleton } from "./LoadingSkeleton";
 import { executorPaths } from "@/lib/paths";
 
 function applyItem(payload: TodayPayload, id: string, patch: Partial<TodayItem>): TodayPayload {
@@ -208,9 +209,7 @@ export function TodayView() {
         </div>
       </div>
 
-      {loading && !data ? (
-        <p className="text-sm text-[--color-text-muted]">Loading today…</p>
-      ) : null}
+      {loading && !data ? <ListSkeleton /> : null}
       {error ? (
         <p className="text-sm text-red-400">{error}</p>
       ) : null}
@@ -246,7 +245,7 @@ export function TodayView() {
         {data?.plans.map((plan) => (
           <section
             key={plan.id}
-            className="rounded-2xl border border-[--color-border] bg-[--color-surface] p-4"
+            className="apple-glass rounded-2xl border p-4"
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
@@ -294,7 +293,7 @@ export function TodayView() {
         ))}
 
         {data?.waiting.length ? (
-          <section className="rounded-2xl border border-[--color-border] p-4">
+          <section className="apple-glass rounded-2xl border p-4">
             <h2 className="mb-1 text-sm font-medium text-[--color-text-muted]">Waiting</h2>
             {data.waiting.map((item) => (
               <ItemRow key={item.id} item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} />

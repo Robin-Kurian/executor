@@ -4,6 +4,7 @@ import { createDb } from "./db/client";
 import { parseEnv } from "./env";
 import { exactOriginCors } from "./middleware/cors";
 import { requireSession } from "./middleware/auth";
+import { restrictCredentialAccess } from "./middleware/auth-access";
 import { requestId } from "./middleware/request-id";
 import { openApiDocument } from "./openapi";
 import { ExecutorRepository } from "./repositories/executor";
@@ -25,6 +26,7 @@ export function createApp() {
   });
   app.get("/api/openapi.json", (c) => c.json(openApiDocument));
   app.get("/api/docs", (c) => c.html("<!doctype html><html><head><title>Executor API</title></head><body><h1>Executor API</h1><p><a href='/api/openapi.json'>OpenAPI 3.1 JSON</a></p></body></html>"));
+  app.use("/api/auth/*", restrictCredentialAccess);
   app.all("/api/auth/*", (c) => createAuth(parseEnv(c.env)).handler(c.req.raw));
   app.use("/api/v1/*", requireSession);
   app.route("/api/v1", v1);

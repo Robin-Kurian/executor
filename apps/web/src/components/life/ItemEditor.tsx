@@ -115,53 +115,77 @@ export function ItemEditor({
       <h2 id="life-edit-title" className="text-lg font-semibold">
         Edit item
       </h2>
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-4">
         <LifeField value={title} onChange={(e) => setTitle(e.target.value)} />
-        <LifeArea value={description} onChange={(e) => setDescription(e.target.value)} />
-        {recurrence !== "none" ? (
-          <DateField
-            value={startDate || null}
-            onChange={(next) => setStartDate(next ?? "")}
-            placeholder="Starts today"
-            ariaLabel="Start date"
-          />
-        ) : (
-          <DateField
-            value={dueDate || null}
-            onChange={(next) => setDueDate(next ?? "")}
-            placeholder="No due date"
-            ariaLabel="Due date"
-          />
-        )}
-        <div>
-          <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-reminder-at">Reminder time</label>
-          <LifeField id="item-reminder-at" type="datetime-local" value={reminderAt} onChange={(event) => setReminderAt(event.target.value)} />
-          <p className="mt-1 text-xs text-[--color-text-muted]">Uses this device’s local time. Clear it to disable the reminder.</p>
-        </div>
-        <div>
-          <p className="mb-1 text-sm text-[var(--color-text-muted)]">Priority</p>
-          <div className="flex gap-2">
-            {(["low", "medium", "high"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setPriority(value)}
-                className={`${lifeChoiceClass(priority === value)} capitalize`}
-              >
-                {value}
-              </button>
-            ))}
+        <LifeArea className="min-h-20 lg:min-h-20" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
+          <div>
+            <p className="mb-1 text-sm text-[var(--color-text-muted)]">
+              {recurrence !== "none" ? "Start date" : "Due date"}
+            </p>
+            {recurrence !== "none" ? (
+              <DateField
+                value={startDate || null}
+                onChange={(next) => setStartDate(next ?? "")}
+                placeholder="Starts today"
+                ariaLabel="Start date"
+              />
+            ) : (
+              <DateField
+                value={dueDate || null}
+                onChange={(next) => setDueDate(next ?? "")}
+                placeholder="No due date"
+                ariaLabel="Due date"
+              />
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-reminder-at">Reminder time</label>
+            <LifeField id="item-reminder-at" type="datetime-local" value={reminderAt} onChange={(event) => setReminderAt(event.target.value)} />
+            <p className="mt-1 text-xs text-[--color-text-muted]">Local time. Clear to disable.</p>
           </div>
         </div>
-        <Select
-          variant="surface"
-          options={ITEM_STATUS_OPTIONS}
-          value={status}
-          onChange={(val) => {
-            if (val) setStatus(val as PlanItem["status"]);
-          }}
-          ariaLabel="Item status"
-        />
+        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <p className="mb-1 text-sm text-[var(--color-text-muted)]">Priority</p>
+            <div className="flex flex-wrap gap-1">
+              {(["low", "medium", "high"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPriority(value)}
+                  className={`${lifeChoiceClass(priority === value)} capitalize`}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1 text-sm text-[var(--color-text-muted)]">Status</p>
+            <Select
+              variant="surface"
+              options={ITEM_STATUS_OPTIONS}
+              value={status}
+              onChange={(val) => {
+                if (val) setStatus(val as PlanItem["status"]);
+              }}
+              ariaLabel="Item status"
+            />
+          </div>
+          <div>
+            <p className="mb-1 text-sm text-[var(--color-text-muted)]">Repeats</p>
+            <Select
+              variant="surface"
+              options={RECURRENCE_OPTIONS}
+              value={recurrence}
+              onChange={(val) => {
+                if (val) setRecurrence(val as PlanItem["recurrence"]);
+              }}
+              ariaLabel="Repeats"
+            />
+          </div>
+        </div>
         {status === "waiting" ? (
           <LifeField
             value={waitingOn}
@@ -169,15 +193,6 @@ export function ItemEditor({
             placeholder="Waiting on"
           />
         ) : null}
-        <Select
-          variant="surface"
-          options={RECURRENCE_OPTIONS}
-          value={recurrence}
-          onChange={(val) => {
-            if (val) setRecurrence(val as PlanItem["recurrence"]);
-          }}
-          ariaLabel="Repeats"
-        />
         {recurrence === "custom" ? (
           <div className="flex flex-wrap gap-1.5">
             {WEEKDAYS.map((day) => {

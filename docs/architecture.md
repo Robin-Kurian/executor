@@ -18,7 +18,9 @@ Activity dates remain civil `YYYY-MM-DD` strings. Arithmetic uses noon UTC. Post
 
 ## Authentication
 
-Better Auth is mounted at `/api/auth/*`, with PostgreSQL-backed `user`, `session`, `account`, and `verification` tables. Protected `/api/v1/*` requests require a valid session. CORS allows one exact `WEB_ORIGIN` with credentials. Production cookies are secure, HTTP-only, and SameSite Lax. Use a shared parent domain or same-origin proxy for Safari if web/API are placed on unrelated registrable domains.
+Better Auth is mounted at `/api/auth/*`, with PostgreSQL-backed `user`, `session`, `account`, and `verification` tables. Credential sign-in is restricted to the configured `ALLOWED_ADMIN_EMAIL`. The email/password sign-up endpoint is not public: it additionally requires the private `ADMIN_BOOTSTRAP_TOKEN`, which is used only by the owner bootstrap command.
+
+The `user.role` column is constrained to `member` or `admin`. Every `/api/v1/*` request requires a valid session whose email matches `ALLOWED_ADMIN_EMAIL` and whose role is `admin`; this protects both reads and mutations, regardless of whether a caller bypasses the web UI. CORS allows one exact `WEB_ORIGIN` with credentials. Production cookies are secure, HTTP-only, and SameSite Lax. Use a shared parent domain or same-origin proxy for Safari if web/API are placed on unrelated registrable domains.
 
 ## PWA and Web Push
 

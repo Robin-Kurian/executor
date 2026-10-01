@@ -1,4 +1,6 @@
-const CACHE_VERSION = "executor-shell-v1";
+// Bump when the shell/runtime caching policy changes so installed PWAs do not
+// keep serving obsolete CSS or JavaScript after a UI release.
+const CACHE_VERSION = "executor-shell-v2";
 const SHELL_URLS = [
   "/offline",
   "/manifest.webmanifest",
