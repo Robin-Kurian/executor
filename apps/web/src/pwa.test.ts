@@ -21,5 +21,6 @@ describe("PWA contract", () => {
     expect(worker).toContain("url.origin !== self.location.origin");
     expect(worker).toContain('caches.match("/offline")');
     expect(worker).toContain('self.addEventListener("notificationclick"');
+    expect(worker).toContain("renotify: true");
   });
 });

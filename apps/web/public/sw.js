@@ -55,6 +55,7 @@ self.addEventListener("push", (event) => {
     icon: typeof payload.icon === "string" ? payload.icon : "/icons/icon-192.png",
     badge: typeof payload.badge === "string" ? payload.badge : "/icons/badge-96.png",
     tag: typeof payload.tag === "string" ? payload.tag : "executor",
+    renotify: true,
     data: { route },
   }));
 });

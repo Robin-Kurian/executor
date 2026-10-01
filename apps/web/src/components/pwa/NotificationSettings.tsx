@@ -93,7 +93,7 @@ export function NotificationSettings() {
     try {
       const result = await lifeFetch<PushTestResult>(`${EXECUTOR_API}/push/test`, { method: "POST", body: "{}" });
       if (result.delivered < 1) throw new Error("The push service did not accept a notification");
-      toast.success(`Test sent to ${result.delivered} device${result.delivered === 1 ? "" : "s"}`);
+      toast.success(`Push accepted for ${result.delivered} device${result.delivered === 1 ? "" : "s"}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not send test notification");
     } finally {
