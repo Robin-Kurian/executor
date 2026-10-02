@@ -20,6 +20,10 @@ const TABS = [
   { href: executorPaths.inbox, label: "Inbox", icon: Inbox, exact: false },
 ] as const;
 
+type NativeWebViewWindow = Window & {
+  ReactNativeWebView?: { postMessage: (message: string) => void };
+};
+
 function controlClass({
   active = false,
   accent = false,
@@ -77,6 +81,12 @@ function ShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { openAdd, addOpen } = useLife();
+
+  useEffect(() => {
+    // The native shell may have received its Expo token before the user signed
+    // in. Signal that this authenticated UI is ready so it can retry storing it.
+    (window as NativeWebViewWindow).ReactNativeWebView?.postMessage("executor:native-shell-ready");
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

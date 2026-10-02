@@ -109,6 +109,16 @@ If a browser retains an outdated service worker after an upgrade, clear the site
 
 Brave on desktop and Android may require **Settings → Privacy and security → Use Google services for push messaging** to be enabled; fully close and reopen Brave after changing it.
 
+## Native Expo app
+
+`apps/mobile` is the native Executor shell. It renders the deployed PWA, so the mobile layout, colors, spacing, and interactions remain identical to the web app while notifications are delivered through Expo's native push service.
+
+1. Copy `apps/mobile/.env.example` to the ignored `apps/mobile/.env` and set the deployed web and API HTTPS origins.
+2. Apply the API migration with `npm run db:migrate`; it adds the `expo_push_tokens` table used by native reminders.
+3. Run `npm run android -w @executor/mobile` to open the connected Android device. A physical device needs a development build for reliable remote notifications; Expo Go is not a notification test target.
+
+The Expo project ID is already linked in `apps/mobile/app.json`. The native app registers its Expo token after the user signs in to the existing PWA, and all existing morning, evening, timed, and test notifications are sent to both web and native registrations. Notification taps open the route included with the reminder.
+
 ## Backups and secret rotation
 
 Use your PostgreSQL provider’s backup and restore facilities and keep exports outside the repository. To rotate a database credential, update the local `DATABASE_URL`, then run `npm run update-connection` from the repository root and paste the new value only at the prompt. The command updates the production Worker secret; it does not read or upload `.dev.vars`. Deploy with `npm run api:deploy` afterward if you also changed code or configuration. Rotate `BETTER_AUTH_SECRET` only with an intentional session invalidation plan. Rotate `ADMIN_BOOTSTRAP_TOKEN` after initial provisioning or whenever its confidentiality is uncertain, then update both the local secret and Cloudflare Worker secret before the next bootstrap attempt. Remove temporary bootstrap credentials from shell history and secret stores.

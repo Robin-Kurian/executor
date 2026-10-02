@@ -43,6 +43,13 @@
       "when": 1790852794772,
       "tag": "0005_bouncy_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790855000000,
+      "tag": "0006_expo_push_tokens",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,7 @@ import {
   HistoryQuerySchema, IdParamsSchema, NoteSchema, NotesQuerySchema, PlanDetailQuerySchema, PlanItemSchema, PlanSchema,
   PlansQuerySchema, ReorderPlansSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema, UpdateNoteSchema, UpdatePlanSchema,
   UpsertCompletionSchema,
-  CreatePushSubscriptionSchema, DeletePushSubscriptionSchema, PushSubscriptionResultSchema, PushTestResultSchema,
+  CreateExpoPushTokenSchema, CreatePushSubscriptionSchema, DeleteExpoPushTokenSchema, DeletePushSubscriptionSchema, PushSubscriptionResultSchema, PushTestResultSchema,
 } from "@executor/contracts";
 
 const docs = new OpenAPIHono();
@@ -55,6 +55,8 @@ register({ method: "delete", path: "/api/v1/notes/{id}", request: { params: IdPa
 register({ method: "get", path: "/api/v1/push/config", responses: ok(z.object({ public_key: z.string() })) });
 register({ method: "post", path: "/api/v1/push/subscriptions", request: { body: jsonBody(CreatePushSubscriptionSchema) }, responses: created(PushSubscriptionResultSchema) });
 register({ method: "delete", path: "/api/v1/push/subscriptions", request: { body: jsonBody(DeletePushSubscriptionSchema) }, responses: ok(z.object({ ok: z.boolean(), removed: z.boolean() })) });
+register({ method: "post", path: "/api/v1/push/expo", request: { body: jsonBody(CreateExpoPushTokenSchema) }, responses: created(PushSubscriptionResultSchema) });
+register({ method: "delete", path: "/api/v1/push/expo", request: { body: jsonBody(DeleteExpoPushTokenSchema) }, responses: ok(z.object({ ok: z.boolean(), removed: z.boolean() })) });
 register({ method: "post", path: "/api/v1/push/test", responses: ok(PushTestResultSchema) });
 
 export const openApiDocument = docs.getOpenAPI31Document({

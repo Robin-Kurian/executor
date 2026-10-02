@@ -20,6 +20,7 @@ describe("PWA contract", () => {
     expect(registration).toContain('register("/sw.js", { scope: "/"');
     expect(bootstrap).toContain('process.env.NODE_ENV !== "production"');
     expect(bootstrap).toContain("unregisterExecutorServiceWorkers()");
+    expect(bootstrap).toContain('"ReactNativeWebView" in window');
     expect(worker).toContain('request.method !== "GET"');
     expect(worker).toContain("url.origin !== self.location.origin");
     expect(worker).not.toContain('url.pathname.startsWith("/_next/static/")');

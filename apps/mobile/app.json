@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Executor",
+    "slug": "executor-app",
+    "description": "Executor by StackRootLabs",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "executor",
+    "plugins": [
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "gifEnabled": false,
+            "webpEnabled": false
+          }
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stackrootlabs.executor"
+    },
+    "android": {
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#07060D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.stackrootlabs.executor",
+      "permissions": ["POST_NOTIFICATIONS"]
+    },
+    "extra": {
+      "companyName": "StackRootLabs",
+      "eas": { "projectId": "27e35af0-efc0-413c-b9a7-d66b391ce1c7" }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

@@ -27,11 +27,19 @@ export function NotificationSettings({ className }: { className?: string }) {
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<PushRegistrationFailure | null>(null);
+  // The Expo shell registers the native token after this page signs in. Keep
+  // this exact control useful there: users can send the same test reminder
+  // without attempting unsupported WebView service-worker registration.
+  const nativeShell = typeof window !== "undefined" && "ReactNativeWebView" in window;
 
   const refresh = useCallback(async () => {
-    const available = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+    const available = nativeShell || ("serviceWorker" in navigator && "PushManager" in window && "Notification" in window);
     setSupported(available);
     if (!available) return;
+    if (nativeShell) {
+      setPermission("granted");
+      return;
+    }
     setPermission(Notification.permission);
     const registration = await registerExecutorServiceWorker();
     const current = await registration.pushManager.getSubscription();
@@ -39,7 +47,7 @@ export function NotificationSettings({ className }: { className?: string }) {
     if (current) {
       await lifeFetch(`${EXECUTOR_API}/push/subscriptions`, { method: "POST", body: JSON.stringify({ subscription: serialize(current) }) });
     }
-  }, []);
+  }, [nativeShell]);
 
   useEffect(() => {
     refresh().catch((error) => console.error("Push state refresh failed", error));
@@ -105,7 +113,7 @@ export function NotificationSettings({ className }: { className?: string }) {
     }
   }
 
-  const enabled = permission === "granted" && Boolean(subscription);
+  const enabled = nativeShell || (permission === "granted" && Boolean(subscription));
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} aria-label="Notification settings" title="Notification settings" className={cn("apple-glass relative inline-flex items-center justify-center rounded-xl border p-2.5 text-[--color-text-secondary] transition-all duration-200 hover:-translate-y-px hover:text-[--color-text-primary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/60", className)}>
@@ -123,7 +131,7 @@ export function NotificationSettings({ className }: { className?: string }) {
             <div className="notification-settings-glass-panel mt-5 rounded-2xl p-4 backdrop-blur-2xl">
               <p className="text-sm font-medium">{supported === false ? "Not available here" : enabled ? "Reminders are on" : permission === "denied" ? "Notifications are blocked" : "Reminders are off"}</p>
               <p className="mt-1 text-sm leading-6 text-[--color-text-secondary]">
-                {supported === false ? "Try using Executor in a supported browser to receive reminders." : permission === "denied" ? "Allow notifications in your browser settings, then come back here." : enabled ? "You’ll receive reminders on this device." : "Turn them on to get reminders when something needs your attention."}
+                {supported === false ? "Try using Executor in a supported browser to receive reminders." : permission === "denied" ? "Allow notifications in your browser settings, then come back here." : nativeShell ? "Native reminders are enabled for this app." : enabled ? "You’ll receive reminders on this device." : "Turn them on to get reminders when something needs your attention."}
               </p>
             </div>
             {failure ? (

@@ -112,6 +112,9 @@ export const CreatePushSubscriptionSchema = z.object({ subscription: PushSubscri
 export const DeletePushSubscriptionSchema = z.object({ endpoint: z.string().url().max(4096) });
 export const PushSubscriptionResultSchema = z.object({ ok: z.boolean(), subscription_id: UuidSchema.optional() });
 export const PushTestResultSchema = z.object({ delivered: z.number().int().nonnegative(), removed: z.number().int().nonnegative(), failed: z.number().int().nonnegative() });
+export const ExpoPushTokenSchema = z.string().regex(/^ExponentPushToken\[[^\]]+\]$|^ExpoPushToken\[[^\]]+\]$/, "Must be an Expo push token");
+export const CreateExpoPushTokenSchema = z.object({ token: ExpoPushTokenSchema });
+export const DeleteExpoPushTokenSchema = z.object({ token: ExpoPushTokenSchema });
 
 export type CreatePlanInput = z.infer<typeof CreatePlanSchema>;
 export type UpdatePlanInput = z.infer<typeof UpdatePlanSchema>;

@@ -111,6 +111,18 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   index("push_subscriptions_user_id_idx").on(table.user_id),
 ]);
 
+export const expoPushTokens = pgTable("expo_push_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  token: text("token").notNull(),
+  last_seen_at: timestamp("last_seen_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("expo_push_tokens_token_unique").on(table.token),
+  index("expo_push_tokens_user_id_idx").on(table.user_id),
+]);
+
 export const pushNotificationRuns = pgTable("push_notification_runs", {
   id: text("id").primaryKey(),
   user_id: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),

@@ -2,8 +2,10 @@ import type { PlanItem, TodayPayload } from "@executor/domain";
 import { createDb } from "../db/client";
 import { parseEnv } from "../env";
 import { WebPushTransport } from "../infrastructure/web-push";
+import { ExpoPushTransport } from "../infrastructure/expo-push";
 import { ExecutorRepository } from "../repositories/executor";
 import { PushRepository } from "../repositories/push";
+import { ExpoPushRepository } from "../repositories/expo-push";
 import { getToday } from "./executor";
 import { PushSubscriptionService, type NotificationPayload } from "./push";
 
@@ -69,7 +71,8 @@ export async function runScheduledNotifications(bindings: CloudflareBindings, ki
   const runtime = parseEnv(bindings);
   const db = createDb(runtime.DATABASE_URL);
   const pushRepository = new PushRepository(db);
-  const userIds = await pushRepository.listSubscribedUserIds();
+  const expoRepository = new ExpoPushRepository(db);
+  const userIds = [...new Set([...(await pushRepository.listSubscribedUserIds()), ...(await expoRepository.listSubscribedUserIds())])];
   const date = dateInTimeZone(scheduledTime);
   const today = await getToday(new ExecutorRepository(db), date);
   const payload = scheduledNotificationPayload(kind, date, today);
@@ -84,7 +87,9 @@ export async function runScheduledNotifications(bindings: CloudflareBindings, ki
       continue;
     }
     try {
-      const result = await service.sendToUser(userId, payload, transport);
+      const web = await service.sendToUser(userId, payload, transport);
+      const expo = await new ExpoPushTransport().send(await expoRepository.listForUser(userId), payload);
+      const result = { delivered: web.delivered + expo.delivered, removed: web.removed + expo.removed, failed: web.failed + expo.failed };
       await pushRepository.completeNotificationRun(runId, result);
       totals.delivered += result.delivered;
       totals.removed += result.removed;
@@ -106,10 +111,13 @@ export async function runDueItemReminders(bindings: CloudflareBindings, schedule
   const pushRepository = new PushRepository(db);
   const through = new Date(scheduledTime).toISOString();
   const from = new Date(scheduledTime - 24 * 60 * 60 * 1000).toISOString();
-  const [items, userIds] = await Promise.all([
+  const expoRepository = new ExpoPushRepository(db);
+  const [items, webUserIds, expoUserIds] = await Promise.all([
     executorRepository.listDueReminderItems(from, through),
     pushRepository.listSubscribedUserIds(),
+    expoRepository.listSubscribedUserIds(),
   ]);
+  const userIds = [...new Set([...webUserIds, ...expoUserIds])];
   const service = new PushSubscriptionService(pushRepository);
   const transport = new WebPushTransport(runtime);
   const totals = { items: items.length, users: userIds.length, delivered: 0, removed: 0, failed: 0, skipped: 0 };
@@ -123,7 +131,10 @@ export async function runDueItemReminders(bindings: CloudflareBindings, schedule
         continue;
       }
       try {
-        const result = await service.sendToUser(userId, itemReminderPayload(item), transport);
+        const payload = itemReminderPayload(item);
+        const web = await service.sendToUser(userId, payload, transport);
+        const expo = await new ExpoPushTransport().send(await expoRepository.listForUser(userId), payload);
+        const result = { delivered: web.delivered + expo.delivered, removed: web.removed + expo.removed, failed: web.failed + expo.failed };
         await pushRepository.completeNotificationRun(runId, result);
         totals.delivered += result.delivered;
         totals.removed += result.removed;
