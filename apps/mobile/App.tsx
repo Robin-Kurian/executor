@@ -24,18 +24,49 @@ Notifications.setNotificationHandler({ handleNotification: async () => ({ should
 
 function registrationScript(token: string) {
   if (!apiUrl) return "true;";
-  return `fetch(${JSON.stringify(`${apiUrl}/api/v1/push/expo`)}, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: ${JSON.stringify(token)} }) }).catch(function () {}); true;`;
+  return `fetch(${JSON.stringify(`${apiUrl}/api/v1/push/expo`)}, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: ${JSON.stringify(token)} }) }).then(function (res) { console.log("[Push] Expo token registered with API, status:", res.status); }).catch(function (err) { console.error("[Push] Expo token registration failed:", err); }); true;`;
 }
-async function getExpoPushToken() {
-  if (!Device.isDevice) return null;
+async function getPushTokens() {
+  if (!Device.isDevice) {
+    console.warn("[Push] Not a physical device, remote push tokens unavailable.");
+    return { expoToken: null, fcmToken: null };
+  }
   const existing = await Notifications.getPermissionsAsync();
   const permission = existing.status === "granted" ? existing : await Notifications.requestPermissionsAsync();
-  if (permission.status !== "granted") return null;
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-  return projectId ? (await Notifications.getExpoPushTokenAsync({ projectId })).data : null;
+  if (permission.status !== "granted") {
+    console.warn("[Push] Notification permission not granted:", permission.status);
+    return { expoToken: null, fcmToken: null };
+  }
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId ??
+    "27e35af0-efc0-413c-b9a7-d66b391ce1c7";
+
+  let expoToken: string | null = null;
+  try {
+    const res = await Notifications.getExpoPushTokenAsync({ projectId });
+    expoToken = res.data;
+    console.log("==================================================");
+    console.log("[Push] EXPO PUSH TOKEN:", expoToken);
+  } catch (err) {
+    console.error("[Push] Failed to get Expo push token:", err);
+  }
+
+  let fcmToken: string | null = null;
+  try {
+    const res = await Notifications.getDevicePushTokenAsync();
+    fcmToken = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+    console.log("[Push] NATIVE FCM REGISTRATION TOKEN (Firebase Console):", fcmToken);
+    console.log("==================================================");
+  } catch (err) {
+    console.error("[Push] Failed to get native FCM token:", err);
+  }
+
+  return { expoToken, fcmToken };
 }
 export default function App() {
   const web = useRef<WebView>(null); const tokenRef = useRef<string | null>(null); const [token, setToken] = useState<string | null>(null);
+  const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false); const [loadError, setLoadError] = useState<string | null>(null); const [canGoBack, setCanGoBack] = useState(false);
   useEffect(() => {
     void (async () => {
@@ -44,10 +75,11 @@ export default function App() {
       if (Platform.OS === "android") {
         await Notifications.setNotificationChannelAsync("default", { name: "Default", importance: Notifications.AndroidImportance.HIGH });
       }
-      const value = await getExpoPushToken();
-      tokenRef.current = value;
-      setToken(value);
-    })().catch(() => undefined);
+      const { expoToken, fcmToken: nativeFcm } = await getPushTokens();
+      tokenRef.current = expoToken;
+      setToken(expoToken);
+      setFcmToken(nativeFcm);
+    })().catch((err) => console.error("[Push] Init error:", err));
     const response = Notifications.addNotificationResponseReceivedListener((event) => { const route = event.notification.request.content.data?.route; if (typeof route === "string") web.current?.injectJavaScript(`window.location.assign(${JSON.stringify(route)}); true;`); });
     const back = BackHandler.addEventListener("hardwareBackPress", () => { if (!canGoBack) return false; web.current?.goBack(); return true; });
     return () => { response.remove(); back.remove(); };
