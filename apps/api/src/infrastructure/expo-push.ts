@@ -7,7 +7,7 @@ export class ExpoPushTransport {
     const response = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(tokens.map(({ token }) => ({ to: token, title: payload.title, body: payload.body, data: { route: payload.route }, sound: "default", priority: "high" }))),
+      body: JSON.stringify(tokens.map(({ token }) => ({ to: token, title: payload.title, body: payload.body, data: { route: payload.route }, sound: "default", priority: "high", channelId: "default" }))),
     });
     if (!response.ok) return { delivered: 0, removed: 0, failed: tokens.length };
     const result = await response.json() as { data?: { status?: string; details?: { error?: string } }[] };

@@ -20,6 +20,7 @@ apps/web/wrangler.production.private.jsonc
 # Local tooling and test artifacts
 .turbo/
 .vercel/
+.expo/
 playwright-report/
 test-results/
 blob-report/
@@ -36,3 +37,7 @@ pnpm-debug.log*
 .DS_Store
 *.tsbuildinfo
 worker-configuration.d.ts
+
+# Expo prebuild output accidentally generated from the monorepo root
+/android/
+/ios/

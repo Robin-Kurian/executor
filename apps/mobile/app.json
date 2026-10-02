@@ -9,7 +9,14 @@
     "userInterfaceStyle": "dark",
     "scheme": "executor",
     "plugins": [
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo-notification.png",
+          "color": "#ffffff",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "expo-build-properties",
         {
