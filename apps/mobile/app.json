@@ -34,7 +34,6 @@
       "bundleIdentifier": "com.stackrootlabs.executor"
     },
     "android": {
-      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#07060D",
         "foregroundImage": "./assets/android-icon-foreground.png",

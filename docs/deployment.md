@@ -114,10 +114,14 @@ Brave on desktop and Android may require **Settings → Privacy and security →
 `apps/mobile` is the native Executor shell. It renders the deployed PWA, so the mobile layout, colors, spacing, and interactions remain identical to the web app while notifications are delivered through Expo's native push service.
 
 1. Copy `apps/mobile/.env.example` to the ignored `apps/mobile/.env` and set the deployed web and API HTTPS origins.
-2. Apply the API migration with `npm run db:migrate`; it adds the `expo_push_tokens` table used by native reminders.
-3. Run `npm run android -w @executor/mobile` to open the connected Android device. A physical device needs a development build for reliable remote notifications; Expo Go is not a notification test target.
+2. In Firebase, register the Android package `com.stackrootlabs.executor`. Download its current `google-services.json` to `apps/mobile/google-services.json`; this path is ignored by Git and EAS uploads. Restrict the associated Google API key to the Firebase APIs the app uses and, where compatible, to the Android package and signing certificate.
+3. In the EAS project settings, upload that JSON file as a **secret file** environment variable named `GOOGLE_SERVICES_JSON` for each build environment (`development`, `preview`, and `production`). The dynamic Expo config uses the EAS-provided path for cloud builds and the ignored local file otherwise.
+4. Apply the API migration with `npm run db:migrate`; it adds the `expo_push_tokens` table used by native reminders.
+5. Run `npm run android -w @executor/mobile` to open the connected Android device. A physical device needs a development build for reliable remote notifications; Expo Go is not a notification test target.
 
 The Expo project ID is already linked in `apps/mobile/app.json`. The native app registers its Expo token after the user signs in to the existing PWA, and all existing morning, evening, timed, and test notifications are sent to both web and native registrations. Notification taps open the route included with the reminder.
+
+If a Firebase API key is exposed, rotate it in Google Cloud, download a fresh `google-services.json`, replace the ignored local file and every `GOOGLE_SERVICES_JSON` EAS file variable, verify all build profiles, and only then delete the old key. Removing the file from Git does not revoke a key that has already been published.
 
 ## Backups and secret rotation
 
