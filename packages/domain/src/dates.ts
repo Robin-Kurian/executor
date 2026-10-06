@@ -85,6 +85,18 @@ export function localToday(): string {
   return `${y}-${m}-${d}`;
 }
 
+export function dateInTimeZone(timestamp: number, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(timestamp));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
 const WEEKDAY_NAMES = [
   "Sunday",
   "Monday",

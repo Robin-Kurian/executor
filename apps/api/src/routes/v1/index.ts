@@ -5,7 +5,7 @@ import {
   NotesQuerySchema, PlanDetailQuerySchema, PlansQuerySchema, ReorderPlansSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema,
   UpdateNoteSchema, UpdatePlanSchema, UpsertCompletionSchema,
 } from "@executor/contracts";
-import { localToday } from "@executor/domain";
+import { dateInTimeZone, localToday } from "@executor/domain";
 import { createDb } from "../../db/client";
 import { parseEnv } from "../../env";
 import { ExecutorRepository } from "../../repositories/executor";
@@ -19,7 +19,10 @@ const repo = (c: { env: CloudflareBindings }) => new ExecutorRepository(createDb
 const notFound = (c: Context<AppEnv>, label: string) =>
   c.json({ error: `${label} not found`, request_id: c.get("requestId") }, 404);
 
-v1.get("/today", zValidator("query", TodayQuerySchema), async (c) => c.json(await getToday(repo(c), c.req.valid("query").date ?? localToday())));
+v1.get("/today", zValidator("query", TodayQuerySchema), async (c) => {
+  const date = c.req.valid("query").date ?? localToday();
+  return c.json(await getToday(repo(c), date, dateInTimeZone(Date.now(), "Asia/Kolkata")));
+});
 v1.get("/calendar", zValidator("query", CalendarQuerySchema), async (c) => c.json(await getCalendar(repo(c), c.req.valid("query").month)));
 v1.get("/inbox", async (c) => c.json(await getInbox(repo(c))));
 

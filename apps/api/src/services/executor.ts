@@ -7,7 +7,7 @@ import type { ExecutorRepository } from "../repositories/executor";
 
 type TodayRepository = Pick<
   ExecutorRepository,
-  "listPlans" | "listActivePlanItems" | "listCompletionsInRange"
+  "listPlans" | "listActivePlanItems" | "listCompletionsInRange" | "listLatestCompletedCompletionsThrough"
 >;
 type CalendarRepository = Pick<
   ExecutorRepository,
@@ -21,14 +21,21 @@ export const toTodayItem = (item: PlanItem, completion?: ItemCompletion, occurre
   completion_date: completion?.date ?? null, completion_note: completion?.note ?? "",
 });
 
-export async function getToday(repo: TodayRepository, date: string): Promise<TodayPayload> {
-  const missedLookbackStart = addDays(date, -7);
-  const [allPlans, items, completions] = await Promise.all([
+const MISSED_HISTORY_DAYS = 28;
+const RECENT_MISS_VISIBILITY_DAYS = 2;
+const STALE_CONSECUTIVE_MISSES = 3;
+
+export async function getToday(repo: TodayRepository, date: string, actualDate = date): Promise<TodayPayload> {
+  const includeMissed = date === actualDate;
+  const missedLookbackStart = includeMissed ? addDays(date, -MISSED_HISTORY_DAYS) : date;
+  const [allPlans, items, completions, latestCompleted] = await Promise.all([
     repo.listPlans(false),
     repo.listActivePlanItems(),
     repo.listCompletionsInRange(missedLookbackStart, date),
+    includeMissed ? repo.listLatestCompletedCompletionsThrough(date) : Promise.resolve([]),
   ]);
   const completionByDateAndItem = new Map(completions.map((row) => [`${row.date}:${row.item_id}`, row]));
+  const latestCompletionByItem = new Map(latestCompleted.map((row) => [row.item_id, row]));
   const completionFor = (itemId: string, completionDate: string) =>
     completionByDateAndItem.get(`${completionDate}:${itemId}`);
   const plansById = new Map(allPlans.filter((plan) => planVisibleOnToday(plan, date)).map((plan) => [plan.id, plan]));
@@ -52,21 +59,30 @@ export async function getToday(repo: TodayRepository, date: string): Promise<Tod
   for (const item of items) {
     const plan = plansById.get(item.plan_id); if (!plan) continue;
     const group = groups.get(plan.id); if (!group) continue;
+    const currentCompletion = completionFor(item.id, date);
     let missedDate: string | null = null;
-    if (item.recurrence !== "none") {
-      for (let daysAgo = 1; daysAgo <= 7; daysAgo++) {
+    let consecutiveMisses = 0;
+    if (includeMissed && item.recurrence !== "none" && !currentCompletion?.completed) {
+      for (let daysAgo = 1; daysAgo <= MISSED_HISTORY_DAYS; daysAgo++) {
         const candidate = addDays(date, -daysAgo);
         if (planVisibleOnToday(plan, candidate) && itemScheduledOnDate(item, candidate)) {
-          missedDate = candidate;
-          break;
+          if (completionFor(item.id, candidate)?.completed) break;
+          missedDate ??= candidate;
+          consecutiveMisses += 1;
         }
       }
     }
-    const missedCompletion = missedDate ? completionFor(item.id, missedDate) : undefined;
-    if (missedDate && !missedCompletion?.completed) {
-      group.missed.push({ ...toTodayItem(item, missedCompletion, missedDate), missed_date: missedDate });
+    const missedIsRecent = missedDate && missedDate >= addDays(date, -RECENT_MISS_VISIBILITY_DAYS);
+    const habitIsStale = consecutiveMisses >= STALE_CONSECUTIVE_MISSES;
+    if (missedDate && (missedIsRecent || habitIsStale)) {
+      group.missed.push({
+        ...toTodayItem(item, undefined, missedDate),
+        missed_date: missedDate,
+        last_completed_date: latestCompletionByItem.get(item.id)?.date ?? null,
+        consecutive_misses: consecutiveMisses,
+        is_stale: habitIsStale,
+      });
     }
-    const currentCompletion = completionFor(item.id, date);
     const next = toTodayItem(item, currentCompletion, date);
     if (itemIsWaiting(item)) { if (itemIsWaitingOnDate(item, date)) waiting.push(next); continue; }
     if (itemIsOverdueOnDate(item, date)) { overdue.push(next); continue; }

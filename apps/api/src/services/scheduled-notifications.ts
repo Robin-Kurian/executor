@@ -1,3 +1,4 @@
+import { dateInTimeZone } from "@executor/domain";
 import type { PlanItem, TodayPayload } from "@executor/domain";
 import { createDb } from "../db/client";
 import { parseEnv } from "../env";
@@ -11,10 +12,9 @@ import { PushSubscriptionService, type NotificationPayload } from "./push";
 
 export const MORNING_NOTIFICATION_CRON = "30 2 * * *";
 export const EVENING_NOTIFICATION_CRON = "30 13 * * *";
-// Poll on a cadence longer than Neon's five-minute idle window so an otherwise
-// quiet database can scale to zero. Reminders may be delivered up to 10 minutes
-// after their scheduled timestamp.
-export const ITEM_REMINDER_CRON = "*/10 * * * *";
+// Keep scheduled database wake-ups low so Neon can remain scaled to zero.
+// Timed reminders may be delivered up to one hour after their timestamp.
+export const ITEM_REMINDER_CRON = "0 * * * *";
 export const NOTIFICATION_TIME_ZONE = "Asia/Kolkata";
 
 export type ScheduledNotificationKind = "morning" | "evening";
@@ -38,13 +38,7 @@ export function itemReminderPayload(item: PlanItem): NotificationPayload {
   };
 }
 
-export function dateInTimeZone(timestamp: number, timeZone = NOTIFICATION_TIME_ZONE): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone, year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date(timestamp));
-  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value;
-  return `${value("year")}-${value("month")}-${value("day")}`;
-}
+export const notificationDate = (timestamp: number) => dateInTimeZone(timestamp, NOTIFICATION_TIME_ZONE);
 
 export function scheduledNotificationPayload(kind: ScheduledNotificationKind, date: string, today: TodayPayload): NotificationPayload {
   const scheduled = today.plans.flatMap((plan) => [...plan.habits, ...plan.tasks]);
@@ -73,7 +67,7 @@ export async function runScheduledNotifications(bindings: CloudflareBindings, ki
   const pushRepository = new PushRepository(db);
   const expoRepository = new ExpoPushRepository(db);
   const userIds = [...new Set([...(await pushRepository.listSubscribedUserIds()), ...(await expoRepository.listSubscribedUserIds())])];
-  const date = dateInTimeZone(scheduledTime);
+  const date = notificationDate(scheduledTime);
   const today = await getToday(new ExecutorRepository(db), date);
   const payload = scheduledNotificationPayload(kind, date, today);
   const service = new PushSubscriptionService(pushRepository);
@@ -126,7 +120,7 @@ export async function runDueItemReminders(bindings: CloudflareBindings, schedule
     if (!item.reminder_at) continue;
     for (const userId of userIds) {
       const runId = `item:${item.id}:${item.reminder_at}:${userId}`;
-      if (!await pushRepository.claimNotificationRun(runId, userId, "item", dateInTimeZone(scheduledTime))) {
+      if (!await pushRepository.claimNotificationRun(runId, userId, "item", notificationDate(scheduledTime))) {
         totals.skipped += 1;
         continue;
       }

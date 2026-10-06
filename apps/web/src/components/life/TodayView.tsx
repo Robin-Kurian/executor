@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { CalendarX2, Clock3 } from "lucide-react";
+import { CalendarX2, Clock3, History } from "lucide-react";
 import { addDays, completedLateByDays, formatCompletedLate, formatDayMonth, formatRelativeDate, formatWeekday, localToday } from "@executor/domain/dates";
-import type { TodayItem, TodayPayload } from "@executor/domain/types";
+import type { MissedTodayItem, TodayItem, TodayPayload } from "@executor/domain/types";
 import { isQuantityItem, nextQuantityState, nextToggleState } from "@executor/domain/quantity";
 import { lifeApi } from "./api";
 import { invalidateLifeCache, lifeCacheKey, useLifeQuery } from "./cache";
@@ -55,7 +55,7 @@ function ItemRow({
   showActions = true,
   readOnlyMissed = false,
 }: {
-  item: TodayItem;
+  item: TodayItem | MissedTodayItem;
   date: string;
   onToggle: (item: TodayItem, occurrenceDate: string) => void;
   onProgress: (item: TodayItem, value: number, occurrenceDate: string) => void;
@@ -65,6 +65,7 @@ function ItemRow({
   readOnlyMissed?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const missedItem = occurrenceLabel && "is_stale" in item ? item : null;
   const completedLate = item.type === "task" && item.recurrence === "none" && item.completed
     ? completedLateByDays(item.due_date, item.completion_date)
     : 0;
@@ -125,7 +126,7 @@ function ItemRow({
               </p>
             </button>
           )}
-          {showActions && !readOnlyMissed ? (
+          {showActions && !readOnlyMissed && !item.completed ? (
             <div className="flex shrink-0 gap-1 text-xs text-[--color-text-muted]">
               <button type="button" onClick={() => move(addDays(date, 1))} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
                 Tomorrow
@@ -150,7 +151,14 @@ function ItemRow({
                 : null}
             {item.waiting_on ? ` · Waiting on ${item.waiting_on}` : ""}
           </span>
-          {occurrenceLabel ? (
+          {occurrenceLabel ? missedItem?.is_stale ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[11px] font-medium text-amber-200">
+              <History className="h-3 w-3" aria-hidden />
+              {missedItem.last_completed_date
+                ? `Last done ${formatDayMonth(missedItem.last_completed_date)}`
+                : "No completion yet"}
+            </span>
+          ) : (
             <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/25 bg-rose-400/10 px-2 py-0.5 text-[11px] font-medium text-rose-300">
               <CalendarX2 className="h-3 w-3" aria-hidden />
               Missed {occurrenceLabel}
@@ -181,7 +189,12 @@ function ItemRow({
 export function TodayView() {
   const { date, setDate, openAdd, refreshToken, bump } = useLife();
   const todayKey = lifeCacheKey("today", date);
-  const { data, loading, error, setData } = useLifeQuery(todayKey, () => lifeApi.today(date), refreshToken);
+  const { data, loading, error, setData } = useLifeQuery(
+    todayKey,
+    () => lifeApi.today(date),
+    refreshToken,
+    { debounceMs: 150 },
+  );
 
   async function saveProgress(item: TodayItem, occurrenceDate: string, patch: { completed: boolean; value: number | null }) {
     const optimisticPatch = { ...patch, completion_date: patch.completed ? occurrenceDate : null };
@@ -326,12 +339,12 @@ export function TodayView() {
                 ))}
               </div>
             ) : null}
-            {plan.missed.length ? (
+            {plan.missed.some((missed) => !plan.habits.some((habit) => habit.id === missed.id && habit.completed)) ? (
               <div className="mt-3">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-red-400">
                   Missed
                 </p>
-                {plan.missed.map((item) => (
+                {plan.missed.filter((missed) => !plan.habits.some((habit) => habit.id === missed.id && habit.completed)).map((item) => (
                   <ItemRow
                     key={`${item.id}-${item.missed_date}`}
                     item={item}

@@ -111,6 +111,9 @@ export type TodayItem = PlanItem & {
 
 export type MissedTodayItem = TodayItem & {
   missed_date: string;
+  last_completed_date: string | null;
+  consecutive_misses: number;
+  is_stale: boolean;
 };
 
 export type PlanDetailPayload = Plan & {

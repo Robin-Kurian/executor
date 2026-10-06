@@ -42,16 +42,16 @@ function habit(id: string, title: string, weekday: number): PlanItem {
   };
 }
 
-function completion(itemId: string, completed: boolean): ItemCompletion {
+function completion(itemId: string, completed: boolean, date = "2026-10-05"): ItemCompletion {
   return {
     id: `completion-${itemId}`,
     item_id: itemId,
-    date: "2026-10-05",
+    date,
     completed,
     value: null,
     note: "",
-    created_at: "2026-10-05T00:00:00.000Z",
-    updated_at: "2026-10-05T00:00:00.000Z",
+    created_at: `${date}T00:00:00.000Z`,
+    updated_at: `${date}T00:00:00.000Z`,
   };
 }
 
@@ -74,6 +74,7 @@ function repository(completions: ItemCompletion[] = []) {
       habit("back", "Back + Biceps", 2),
     ],
     listCompletionsInRange: async () => completions,
+    listLatestCompletedCompletionsThrough: async () => completions.filter((row) => row.completed),
   };
 }
 
@@ -103,6 +104,33 @@ describe("getToday missed habits", () => {
       expect.objectContaining({ id: "chest", missed_date: "2026-10-05" }),
     ]));
   });
+
+  it("never manufactures missed habits while browsing a future date", async () => {
+    const result = await getToday(repository(), "2026-10-09", "2026-10-06");
+
+    expect(result.plans.flatMap((group) => group.missed)).toEqual([]);
+  });
+
+  it("lets a single lapse age out after two days", async () => {
+    const result = await getToday(repository(), "2026-10-08", "2026-10-08");
+
+    expect(result.plans.flatMap((group) => group.missed).map((item) => item.id)).not.toContain("chest");
+  });
+
+  it("shows the last completion after three consecutive missed occurrences", async () => {
+    const lastCompletion = completion("chest", true, "2026-10-19");
+    const result = await getToday(repository([lastCompletion]), "2026-11-10", "2026-11-10");
+
+    expect(result.plans[0]?.missed).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "chest",
+        missed_date: "2026-11-09",
+        last_completed_date: "2026-10-19",
+        consecutive_misses: 3,
+        is_stale: true,
+      }),
+    ]));
+  });
 });
 
 describe("getToday completed overdue tasks", () => {
@@ -112,6 +140,7 @@ describe("getToday completed overdue tasks", () => {
       listPlans: async () => [plan],
       listActivePlanItems: async () => [task()],
       listCompletionsInRange: async () => [checkedToday],
+      listLatestCompletedCompletionsThrough: async () => [checkedToday],
     }, "2026-10-06");
 
     expect(result.overdue).toEqual([]);
@@ -125,6 +154,7 @@ describe("getToday completed overdue tasks", () => {
       listPlans: async () => [plan],
       listActivePlanItems: async () => [task()],
       listCompletionsInRange: async () => [],
+      listLatestCompletedCompletionsThrough: async () => [],
     }, "2026-10-05");
 
     expect(result.plans[0]?.tasks).toMatchObject([

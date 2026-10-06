@@ -89,7 +89,12 @@ export function lifeCacheKey(resource: string, id: string | number | boolean = "
   return `${resource}:${id}`;
 }
 
-export function useLifeQuery<T>(key: string, fetcher: () => Promise<T>, refreshToken: number) {
+export function useLifeQuery<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  refreshToken: number,
+  options?: { debounceMs?: number },
+) {
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
@@ -135,23 +140,29 @@ export function useLifeQuery<T>(key: string, fetcher: () => Promise<T>, refreshT
       setLoading(true);
     }
 
-    loadLifeCache(key, () => fetcherRef.current())
-      .then((next) => {
-        if (cancelled) return;
-        setDataState(next);
-        setError(null);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load");
-        setLoading(false);
-      });
+    const load = () => {
+      loadLifeCache(key, () => fetcherRef.current())
+        .then((next) => {
+          if (cancelled) return;
+          setDataState(next);
+          setError(null);
+          setLoading(false);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setError(err instanceof Error ? err.message : "Failed to load");
+          setLoading(false);
+        });
+    };
+    const debounceMs = options?.debounceMs ?? 0;
+    const timer = debounceMs > 0 ? window.setTimeout(load, debounceMs) : null;
+    if (timer === null) load();
 
     return () => {
       cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
     };
-  }, [key, refreshToken]);
+  }, [key, refreshToken, options?.debounceMs]);
 
   return { data, loading, error, setData };
 }

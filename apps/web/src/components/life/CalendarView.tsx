@@ -114,11 +114,13 @@ export function CalendarView() {
     calendarKey,
     () => lifeApi.calendar(month),
     refreshToken,
+    { debounceMs: 150 },
   );
   const { data: dayPayload, setData: setDayPayload } = useLifeQuery(
     todayKey,
     () => lifeApi.today(date),
     refreshToken,
+    { debounceMs: 150 },
   );
 
   const days = calendarData?.days ?? [];

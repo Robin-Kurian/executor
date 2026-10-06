@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { TodayPayload } from "@executor/domain";
 import {
-  EVENING_NOTIFICATION_CRON, ITEM_REMINDER_CRON, MORNING_NOTIFICATION_CRON, dateInTimeZone, itemReminderPayload,
-  notificationKindForCron, scheduledNotificationPayload,
+  EVENING_NOTIFICATION_CRON, ITEM_REMINDER_CRON, MORNING_NOTIFICATION_CRON, itemReminderPayload,
+  notificationDate, notificationKindForCron, scheduledNotificationPayload,
 } from "./scheduled-notifications";
 
 const today = (completed = false): TodayPayload => ({
@@ -25,15 +25,15 @@ const today = (completed = false): TodayPayload => ({
 
 describe("scheduled notifications", () => {
   it("maps UTC cron schedules to their notification kind", () => {
-    expect(ITEM_REMINDER_CRON).toBe("*/10 * * * *");
+    expect(ITEM_REMINDER_CRON).toBe("0 * * * *");
     expect(notificationKindForCron(MORNING_NOTIFICATION_CRON)).toBe("morning");
     expect(notificationKindForCron(EVENING_NOTIFICATION_CRON)).toBe("evening");
     expect(notificationKindForCron(ITEM_REMINDER_CRON)).toBe("item");
-    expect(notificationKindForCron("0 * * * *")).toBeNull();
+    expect(notificationKindForCron("*/10 * * * *")).toBeNull();
   });
 
   it("uses the configured IST calendar date", () => {
-    expect(dateInTimeZone(Date.parse("2026-09-30T20:00:00Z"))).toBe("2026-10-01");
+    expect(notificationDate(Date.parse("2026-09-30T20:00:00Z"))).toBe("2026-10-01");
   });
 
   it("summarizes morning work and sends a completion message at night", () => {
