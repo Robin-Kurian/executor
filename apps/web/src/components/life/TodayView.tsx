@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { addDays, formatDayMonth, formatRelativeDate, formatWeekday, localToday } from "@executor/domain/dates";
+import { CalendarX2, Clock3 } from "lucide-react";
+import { addDays, completedLateByDays, formatCompletedLate, formatDayMonth, formatRelativeDate, formatWeekday, localToday } from "@executor/domain/dates";
 import type { TodayItem, TodayPayload } from "@executor/domain/types";
 import { isQuantityItem, nextQuantityState, nextToggleState } from "@executor/domain/quantity";
 import { lifeApi } from "./api";
@@ -11,7 +12,7 @@ import { invalidateLifeCache, lifeCacheKey, useLifeQuery } from "./cache";
 import { ItemEditor } from "./ItemEditor";
 import { useLife } from "./LifeProvider";
 import { QuantityTracker } from "./QuantityTracker";
-import { EmptyState, ItemCheckbox, LifeButton, ProgressIndicator } from "./ui";
+import { EmptyState, ItemCheckbox, LifeButton, MissedIndicator, ProgressIndicator } from "./ui";
 import { ListSkeleton } from "./LoadingSkeleton";
 import { executorPaths } from "@/lib/paths";
 
@@ -52,6 +53,7 @@ function ItemRow({
   onMoved,
   occurrenceLabel,
   showActions = true,
+  readOnlyMissed = false,
 }: {
   item: TodayItem;
   date: string;
@@ -60,8 +62,12 @@ function ItemRow({
   onMoved: () => void;
   occurrenceLabel?: string;
   showActions?: boolean;
+  readOnlyMissed?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const completedLate = item.type === "task" && item.recurrence === "none" && item.completed
+    ? completedLateByDays(item.due_date, item.completion_date)
+    : 0;
 
   async function move(dueDate: string | null) {
     try {
@@ -85,29 +91,41 @@ function ItemRow({
 
   return (
     <div className="flex items-start gap-3 py-2.5">
-      <ItemCheckbox
-        checked={item.completed}
-        onToggle={() => onToggle(item, date)}
-        label={`Mark ${item.title} ${item.completed ? "incomplete" : "complete"}`}
-      />
+      {readOnlyMissed ? (
+        <MissedIndicator label={`${item.title} was missed`} />
+      ) : (
+        <ItemCheckbox
+          checked={item.completed}
+          onToggle={() => onToggle(item, date)}
+          label={`Mark ${item.title} ${item.completed ? "incomplete" : "complete"}`}
+        />
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
-          <button
-            type="button"
-            className="min-w-0 flex-1 cursor-pointer text-left"
-            onClick={() => setEditing(true)}
-          >
+          {readOnlyMissed ? (
             <p
-              className={`text-[15px] leading-snug ${
-                item.completed
-                  ? "text-[--color-text-muted] line-through"
-                  : "text-[--color-text-primary]"
-              }`}
+              className="min-w-0 flex-1 text-[15px] leading-snug text-[--color-text-primary]"
             >
               {item.title}
             </p>
-          </button>
-          {showActions ? (
+          ) : (
+            <button
+              type="button"
+              className="min-w-0 flex-1 cursor-pointer text-left"
+              onClick={() => setEditing(true)}
+            >
+              <p
+                className={`text-[15px] leading-snug ${
+                  item.completed
+                    ? "text-[--color-text-muted] line-through"
+                    : "text-[--color-text-primary]"
+                }`}
+              >
+                {item.title}
+              </p>
+            </button>
+          )}
+          {showActions && !readOnlyMissed ? (
             <div className="flex shrink-0 gap-1 text-xs text-[--color-text-muted]">
               <button type="button" onClick={() => move(addDays(date, 1))} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
                 Tomorrow
@@ -120,21 +138,33 @@ function ItemRow({
             </div>
           ) : null}
         </div>
-        {isQuantityItem(item) ? (
+        {!readOnlyMissed && isQuantityItem(item) ? (
           <QuantityTracker item={item} value={item.value} onChange={(value) => onProgress(item, value, date)} collapsible />
-        ) : (
-          <p className="mt-0.5 text-xs text-[--color-text-muted]">
+        ) : null}
+        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[--color-text-muted]">
+          <span>
             {item.type === "habit" || item.type === "metric"
               ? item.type
               : item.priority === "high"
                 ? "High"
                 : null}
-            {occurrenceLabel ? ` · ${occurrenceLabel}` : ""}
             {item.waiting_on ? ` · Waiting on ${item.waiting_on}` : ""}
-          </p>
-        )}
+          </span>
+          {occurrenceLabel ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/25 bg-rose-400/10 px-2 py-0.5 text-[11px] font-medium text-rose-300">
+              <CalendarX2 className="h-3 w-3" aria-hidden />
+              Missed {occurrenceLabel}
+            </span>
+          ) : null}
+          {completedLate > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+              <Clock3 className="h-3 w-3" aria-hidden />
+              {formatCompletedLate(completedLate)}
+            </span>
+          ) : null}
+        </div>
       </div>
-      {editing ? (
+      {!readOnlyMissed && editing ? (
         <ItemEditor
           item={item}
           onClose={() => setEditing(false)}
@@ -154,7 +184,8 @@ export function TodayView() {
   const { data, loading, error, setData } = useLifeQuery(todayKey, () => lifeApi.today(date), refreshToken);
 
   async function saveProgress(item: TodayItem, occurrenceDate: string, patch: { completed: boolean; value: number | null }) {
-    setData((current) => (current ? applyItem(current, item.id, occurrenceDate, patch) : current));
+    const optimisticPatch = { ...patch, completion_date: patch.completed ? occurrenceDate : null };
+    setData((current) => (current ? applyItem(current, item.id, occurrenceDate, optimisticPatch) : current));
     invalidateLifeCache({
       keep: [todayKey, lifeCacheKey("plans", 0), lifeCacheKey("plans", 1), lifeCacheKey("inbox")],
     });
@@ -310,6 +341,7 @@ export function TodayView() {
                     onMoved={bump}
                     occurrenceLabel={formatRelativeDate(item.missed_date, date)}
                     showActions={false}
+                    readOnlyMissed
                   />
                 ))}
               </div>

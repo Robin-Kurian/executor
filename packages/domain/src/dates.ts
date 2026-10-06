@@ -103,6 +103,15 @@ export function dayDifference(targetDate: string, baseDate: string = localToday(
   return Math.round((targetMs - baseMs) / 86_400_000);
 }
 
+export function completedLateByDays(dueDate: string | null, completionDate: string | null): number {
+  if (!dueDate || !completionDate) return 0;
+  return Math.max(0, dayDifference(completionDate, dueDate));
+}
+
+export function formatCompletedLate(days: number): string {
+  return `Completed ${days} ${days === 1 ? "day" : "days"} late`;
+}
+
 export function formatRelativeDate(date: string, baseDate: string = localToday()): string {
   if (!isDateOnly(date)) return "Today";
   const diff = dayDifference(date, baseDate);

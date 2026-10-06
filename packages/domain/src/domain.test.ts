@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, isDateOnly, toDateOnly, weekdayOf } from "./dates";
+import { addDays, completedLateByDays, formatCompletedLate, isDateOnly, toDateOnly, weekdayOf } from "./dates";
 import { nextQuantityState, nextToggleState } from "./quantity";
 import { itemScheduledOnDate, planVisibleOnToday, recurrenceAppliesOnDate } from "./recurrence";
 import type { Plan, PlanItem } from "./types";
@@ -27,6 +27,13 @@ describe("civil dates", () => {
   it("normalizes either UTC or IST-style Date encodings", () => {
     expect(toDateOnly(new Date("2026-10-01T00:00:00.000Z"))).toBe("2026-10-01");
     expect(toDateOnly(new Date("2026-09-30T18:30:00.000Z"))).toBe("2026-10-01");
+  });
+  it("describes completion after a task's civil due date", () => {
+    expect(completedLateByDays("2026-10-05", "2026-10-06")).toBe(1);
+    expect(completedLateByDays("2026-10-05", "2026-10-09")).toBe(4);
+    expect(completedLateByDays("2026-10-05", "2026-10-05")).toBe(0);
+    expect(formatCompletedLate(1)).toBe("Completed 1 day late");
+    expect(formatCompletedLate(4)).toBe("Completed 4 days late");
   });
 });
 

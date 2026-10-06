@@ -105,6 +105,7 @@ export type TodayItem = PlanItem & {
   completed: boolean;
   value: number | null;
   completion_id: string | null;
+  completion_date: string | null;
   completion_note: string;
 };
 

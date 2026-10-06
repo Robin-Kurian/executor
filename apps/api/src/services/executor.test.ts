@@ -116,7 +116,7 @@ describe("getToday completed overdue tasks", () => {
 
     expect(result.overdue).toEqual([]);
     expect(result.plans[0]?.tasks).toMatchObject([
-      { id: "overdue-task", completed: true },
+      { id: "overdue-task", completed: true, completion_date: "2026-10-06" },
     ]);
   });
 

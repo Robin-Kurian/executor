@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { formatLongDate, localToday, weekdayOf } from "@executor/domain/dates";
+import { ChevronDown, ChevronUp, Clock3 } from "lucide-react";
+import { completedLateByDays, formatCompletedLate, formatLongDate, localToday, weekdayOf } from "@executor/domain/dates";
 import { executorPaths } from "@/lib/paths";
 import type { TodayItem, TodayPayload } from "@executor/domain/types";
 import { isQuantityItem, nextQuantityState, nextToggleState } from "@executor/domain/quantity";
@@ -67,6 +67,9 @@ function DayItemRow({
   onToggle: (item: TodayItem) => void;
   onProgress: (item: TodayItem, value: number) => void;
 }) {
+  const completedLate = item.type === "task" && item.recurrence === "none" && item.completed
+    ? completedLateByDays(item.due_date, item.completion_date)
+    : 0;
   return (
     <div className="flex items-start gap-3 py-2">
       <ItemCheckbox
@@ -87,6 +90,12 @@ function DayItemRow({
         </p>
         {isQuantityItem(item) ? (
           <QuantityTracker item={item} value={item.value} onChange={(value) => onProgress(item, value)} />
+        ) : null}
+        {completedLate > 0 ? (
+          <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+            <Clock3 className="h-3 w-3" aria-hidden />
+            {formatCompletedLate(completedLate)}
+          </span>
         ) : null}
       </div>
     </div>
@@ -122,7 +131,8 @@ export function CalendarView() {
   async function saveProgress(item: TodayItem, patch: { completed: boolean; value: number | null }) {
     const wasCompleted = item.completed;
     const countsForDay = dayPayload ? itemInDayPlans(dayPayload, item.id) : false;
-    setDayPayload((current) => (current ? applyItem(current, item.id, patch) : current));
+    const optimisticPatch = { ...patch, completion_date: patch.completed ? date : null };
+    setDayPayload((current) => (current ? applyItem(current, item.id, optimisticPatch) : current));
     if (countsForDay && wasCompleted !== patch.completed) {
       const delta = patch.completed ? 1 : -1;
       setCalendar((current) =>

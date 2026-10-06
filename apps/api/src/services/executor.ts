@@ -17,7 +17,8 @@ type CalendarRepository = Pick<
 export const toTodayItem = (item: PlanItem, completion?: ItemCompletion, occurrenceDate?: string): TodayItem => ({
   ...item,
   completed: completion?.completed ?? (!occurrenceDate && item.recurrence === "none" && item.status === "done"),
-  value: completion?.value ?? null, completion_id: completion?.id ?? null, completion_note: completion?.note ?? "",
+  value: completion?.value ?? null, completion_id: completion?.id ?? null,
+  completion_date: completion?.date ?? null, completion_note: completion?.note ?? "",
 });
 
 export async function getToday(repo: TodayRepository, date: string): Promise<TodayPayload> {

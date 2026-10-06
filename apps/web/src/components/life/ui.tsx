@@ -121,6 +121,26 @@ export function ItemCheckbox({
   );
 }
 
+export function MissedIndicator({ label }: { label: string }) {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-rose-400/70 bg-rose-400/10 text-rose-300"
+    >
+      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>
+        <path
+          d="m4.5 4.5 7 7m0-7-7 7"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  );
+}
+
 export function LifeToggle({
   checked,
   onChange,
