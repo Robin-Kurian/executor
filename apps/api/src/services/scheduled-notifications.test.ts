@@ -11,6 +11,7 @@ const today = (completed = false): TodayPayload => ({
     id: "plan-1", name: "Launch", description: "", icon: "", color: "", status: "active",
     start_date: null, end_date: null, day_progress: null, progress: { completed: completed ? 1 : 0, total: 1 },
     habits: [],
+    missed: [],
     tasks: [{
       id: "item-1", plan_id: "plan-1", title: "Ship", description: "", type: "task", priority: "high", status: "todo",
       start_date: null, due_date: "2026-10-01", reminder_at: null, recurrence: "none", recurrence_weekdays: [], waiting_on: "",

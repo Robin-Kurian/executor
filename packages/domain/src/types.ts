@@ -108,6 +108,10 @@ export type TodayItem = PlanItem & {
   completion_note: string;
 };
 
+export type MissedTodayItem = TodayItem & {
+  missed_date: string;
+};
+
 export type PlanDetailPayload = Plan & {
   items: TodayItem[];
   completed_item_ids: string[];
@@ -125,6 +129,7 @@ export type TodayPlanGroup = {
   day_progress: PlanDayProgress | null;
   progress: { completed: number; total: number };
   habits: TodayItem[];
+  missed: MissedTodayItem[];
   tasks: TodayItem[];
 };
 

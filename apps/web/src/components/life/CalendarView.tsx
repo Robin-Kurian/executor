@@ -39,6 +39,7 @@ function applyItem(payload: TodayPayload, id: string, patch: Partial<TodayItem>)
       return {
         ...plan,
         habits,
+        missed: plan.missed,
         tasks,
         progress: {
           completed: items.filter((item) => item.completed).length,

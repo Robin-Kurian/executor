@@ -15,18 +15,23 @@ import { EmptyState, ItemCheckbox, LifeButton, ProgressIndicator } from "./ui";
 import { ListSkeleton } from "./LoadingSkeleton";
 import { executorPaths } from "@/lib/paths";
 
-function applyItem(payload: TodayPayload, id: string, patch: Partial<TodayItem>): TodayPayload {
+function applyItem(payload: TodayPayload, id: string, occurrenceDate: string, patch: Partial<TodayItem>): TodayPayload {
   const mapItems = (items: TodayItem[]) =>
     items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+  const currentDatePatch = occurrenceDate === payload.date;
   return {
     ...payload,
     plans: payload.plans.map((plan) => {
-      const habits = mapItems(plan.habits);
-      const tasks = mapItems(plan.tasks);
+      const habits = currentDatePatch ? mapItems(plan.habits) : plan.habits;
+      const tasks = currentDatePatch ? mapItems(plan.tasks) : plan.tasks;
+      const missed = plan.missed.map((item) =>
+        item.id === id && item.missed_date === occurrenceDate ? { ...item, ...patch } : item,
+      );
       const items = [...habits, ...tasks];
       return {
         ...plan,
         habits,
+        missed,
         tasks,
         progress: {
           completed: items.filter((item) => item.completed).length,
@@ -34,8 +39,8 @@ function applyItem(payload: TodayPayload, id: string, patch: Partial<TodayItem>)
         },
       };
     }),
-    overdue: mapItems(payload.overdue),
-    waiting: mapItems(payload.waiting),
+    overdue: currentDatePatch ? mapItems(payload.overdue) : payload.overdue,
+    waiting: currentDatePatch ? mapItems(payload.waiting) : payload.waiting,
   };
 }
 
@@ -45,12 +50,16 @@ function ItemRow({
   onToggle,
   onProgress,
   onMoved,
+  occurrenceLabel,
+  showActions = true,
 }: {
   item: TodayItem;
   date: string;
-  onToggle: (item: TodayItem) => void;
-  onProgress: (item: TodayItem, value: number) => void;
+  onToggle: (item: TodayItem, occurrenceDate: string) => void;
+  onProgress: (item: TodayItem, value: number, occurrenceDate: string) => void;
   onMoved: () => void;
+  occurrenceLabel?: string;
+  showActions?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -78,7 +87,7 @@ function ItemRow({
     <div className="flex items-start gap-3 py-2.5">
       <ItemCheckbox
         checked={item.completed}
-        onToggle={() => onToggle(item)}
+        onToggle={() => onToggle(item, date)}
         label={`Mark ${item.title} ${item.completed ? "incomplete" : "complete"}`}
       />
       <div className="min-w-0 flex-1">
@@ -98,19 +107,21 @@ function ItemRow({
               {item.title}
             </p>
           </button>
-          <div className="flex shrink-0 gap-1 text-xs text-[--color-text-muted]">
-            <button type="button" onClick={() => move(addDays(date, 1))} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
-              Tomorrow
-            </button>
-            {item.status !== "waiting" ? (
-              <button type="button" onClick={markWaiting} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
-                Wait
+          {showActions ? (
+            <div className="flex shrink-0 gap-1 text-xs text-[--color-text-muted]">
+              <button type="button" onClick={() => move(addDays(date, 1))} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
+                Tomorrow
               </button>
-            ) : null}
-          </div>
+              {item.status !== "waiting" ? (
+                <button type="button" onClick={markWaiting} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
+                  Wait
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         {isQuantityItem(item) ? (
-          <QuantityTracker item={item} value={item.value} onChange={(value) => onProgress(item, value)} collapsible />
+          <QuantityTracker item={item} value={item.value} onChange={(value) => onProgress(item, value, date)} collapsible />
         ) : (
           <p className="mt-0.5 text-xs text-[--color-text-muted]">
             {item.type === "habit" || item.type === "metric"
@@ -118,6 +129,7 @@ function ItemRow({
               : item.priority === "high"
                 ? "High"
                 : null}
+            {occurrenceLabel ? ` · ${occurrenceLabel}` : ""}
             {item.waiting_on ? ` · Waiting on ${item.waiting_on}` : ""}
           </p>
         )}
@@ -141,25 +153,25 @@ export function TodayView() {
   const todayKey = lifeCacheKey("today", date);
   const { data, loading, error, setData } = useLifeQuery(todayKey, () => lifeApi.today(date), refreshToken);
 
-  async function saveProgress(item: TodayItem, patch: { completed: boolean; value: number | null }) {
-    setData((current) => (current ? applyItem(current, item.id, patch) : current));
+  async function saveProgress(item: TodayItem, occurrenceDate: string, patch: { completed: boolean; value: number | null }) {
+    setData((current) => (current ? applyItem(current, item.id, occurrenceDate, patch) : current));
     invalidateLifeCache({
       keep: [todayKey, lifeCacheKey("plans", 0), lifeCacheKey("plans", 1), lifeCacheKey("inbox")],
     });
     try {
-      await lifeApi.complete(item.id, { date, ...patch });
+      await lifeApi.complete(item.id, { date: occurrenceDate, ...patch });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save");
       bump();
     }
   }
 
-  async function toggle(item: TodayItem) {
-    await saveProgress(item, nextToggleState(item));
+  async function toggle(item: TodayItem, occurrenceDate: string) {
+    await saveProgress(item, occurrenceDate, nextToggleState(item));
   }
 
-  async function setProgress(item: TodayItem, value: number) {
-    await saveProgress(item, nextQuantityState(item, value));
+  async function setProgress(item: TodayItem, value: number, occurrenceDate: string) {
+    await saveProgress(item, occurrenceDate, nextQuantityState(item, value));
   }
 
   const empty =
@@ -264,11 +276,15 @@ export function TodayView() {
                 </span>
               ) : (
                 <span className="text-sm tabular-nums text-[--color-text-muted]">
-                  {plan.progress.completed} / {plan.progress.total}
+                  {plan.progress.total > 0
+                    ? `${plan.progress.completed} / ${plan.progress.total}`
+                    : "No items today"}
                 </span>
               )}
             </div>
-            <ProgressIndicator completed={plan.progress.completed} total={plan.progress.total} />
+            {plan.progress.total > 0 ? (
+              <ProgressIndicator completed={plan.progress.completed} total={plan.progress.total} />
+            ) : null}
             {plan.habits.length ? (
               <div className="mt-3">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-[--color-text-muted]">
@@ -276,6 +292,25 @@ export function TodayView() {
                 </p>
                 {plan.habits.map((item) => (
                   <ItemRow key={item.id} item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} />
+                ))}
+              </div>
+            ) : null}
+            {plan.missed.length ? (
+              <div className="mt-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-red-400">
+                  Missed
+                </p>
+                {plan.missed.map((item) => (
+                  <ItemRow
+                    key={`${item.id}-${item.missed_date}`}
+                    item={item}
+                    date={item.missed_date}
+                    onToggle={toggle}
+                    onProgress={setProgress}
+                    onMoved={bump}
+                    occurrenceLabel={formatRelativeDate(item.missed_date, date)}
+                    showActions={false}
+                  />
                 ))}
               </div>
             ) : null}

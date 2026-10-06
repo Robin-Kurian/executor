@@ -34,7 +34,7 @@ v1.get("/plans/:id", zValidator("param", IdParamsSchema), zValidator("query", Pl
   const date = c.req.valid("query").date ?? localToday(); const items = await repository.listItems(plan.id);
   const completions = await repository.listCompletionsForDate(date, items.map((item) => item.id));
   const byItem = new Map(completions.map((completion) => [completion.item_id, completion]));
-  const hydrated = items.map((item) => toTodayItem(item, byItem.get(item.id)));
+  const hydrated = items.map((item) => toTodayItem(item, byItem.get(item.id), date));
   return c.json({ ...plan, items: hydrated, completed_item_ids: hydrated.filter((item) => item.completed).map((item) => item.id) });
 });
 v1.patch("/plans/:id", zValidator("param", IdParamsSchema), zValidator("json", UpdatePlanSchema), async (c) => {
