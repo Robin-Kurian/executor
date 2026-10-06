@@ -28,4 +28,10 @@ describe("PWA contract", () => {
     expect(worker).toContain('self.addEventListener("notificationclick"');
     expect(worker).toContain("renotify: true");
   });
+
+  it("hands native startup off only after authentication settles without showing a second text loader", () => {
+    const authGate = readFileSync(new URL("./components/AuthGate.tsx", import.meta.url), "utf8");
+    expect(authGate).toContain('postMessage("executor:native-web-ready")');
+    expect(authGate).not.toContain("<span>Loading Executor…</span>");
+  });
 });

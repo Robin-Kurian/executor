@@ -6,6 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "backgroundColor": "#07060D",
     "userInterfaceStyle": "dark",
     "scheme": "executor",
     "plugins": [
@@ -25,6 +26,19 @@
             "enableShrinkResourcesInReleaseBuilds": true,
             "gifEnabled": false,
             "webpEnabled": false
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#07060D",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#07060D",
+            "image": "./assets/splash-icon.png"
           }
         }
       ]
