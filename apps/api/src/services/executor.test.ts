@@ -111,10 +111,12 @@ describe("getToday missed habits", () => {
     expect(result.plans.flatMap((group) => group.missed)).toEqual([]);
   });
 
-  it("lets a single lapse age out after two days", async () => {
-    const result = await getToday(repository(), "2026-10-08", "2026-10-08");
+  it("shows a single lapse for six days and ages it out on the seventh", async () => {
+    const sixthDay = await getToday(repository(), "2026-10-11", "2026-10-11");
+    const seventhDay = await getToday(repository(), "2026-10-12", "2026-10-12");
 
-    expect(result.plans.flatMap((group) => group.missed).map((item) => item.id)).not.toContain("chest");
+    expect(sixthDay.plans.flatMap((group) => group.missed).map((item) => item.id)).toContain("chest");
+    expect(seventhDay.plans.flatMap((group) => group.missed).map((item) => item.id)).not.toContain("chest");
   });
 
   it("shows the last completion after three consecutive missed occurrences", async () => {

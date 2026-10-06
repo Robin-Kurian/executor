@@ -22,7 +22,7 @@ export const toTodayItem = (item: PlanItem, completion?: ItemCompletion, occurre
 });
 
 const MISSED_HISTORY_DAYS = 28;
-const RECENT_MISS_VISIBILITY_DAYS = 2;
+const RECENT_MISS_VISIBILITY_DAYS = 6;
 const STALE_CONSECUTIVE_MISSES = 3;
 
 export async function getToday(repo: TodayRepository, date: string, actualDate = date): Promise<TodayPayload> {
