@@ -47,6 +47,11 @@ export const lifeApi = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
+  rescheduleOccurrence: (id: string, body: { source_date: string; target_date: string; swap_item_id?: string }) =>
+    lifeFetch<{ ok: true; moved_item_id: string; swapped_item_id: string | null }>(`${EXECUTOR_API}/items/${id}/reschedule`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   deleteItem: (id: string) =>
     lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/items/${id}`, { method: "DELETE" }),
   complete: (itemId: string, body: Record<string, unknown>) =>

@@ -150,6 +150,15 @@ export type CalendarDay = {
   total: number;
 };
 
+export type ScheduleOverride = {
+  id: string;
+  item_id: string;
+  original_date: string;
+  scheduled_date: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CreatePlanInput = {
   name: string;
   description?: string;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ItemCompletion, Plan, PlanItem } from "@executor/domain";
-import { getCalendar, getToday } from "./executor";
+import type { ItemCompletion, Plan, PlanItem, ScheduleOverride } from "@executor/domain";
+import { getCalendar, getToday, rescheduleOccurrence } from "./executor";
 
 const plan: Plan = {
   id: "plan-1",
@@ -66,7 +66,7 @@ function task(): PlanItem {
   };
 }
 
-function repository(completions: ItemCompletion[] = []) {
+function repository(completions: ItemCompletion[] = [], overrides: ScheduleOverride[] = []) {
   return {
     listPlans: async () => [plan],
     listActivePlanItems: async () => [
@@ -75,6 +75,18 @@ function repository(completions: ItemCompletion[] = []) {
     ],
     listCompletionsInRange: async () => completions,
     listLatestCompletedCompletionsThrough: async () => completions.filter((row) => row.completed),
+    listScheduleOverridesInRange: async () => overrides,
+  };
+}
+
+function scheduleOverride(itemId: string, originalDate: string, scheduledDate: string): ScheduleOverride {
+  return {
+    id: `override-${itemId}-${originalDate}`,
+    item_id: itemId,
+    original_date: originalDate,
+    scheduled_date: scheduledDate,
+    created_at: "2026-10-01T00:00:00.000Z",
+    updated_at: "2026-10-01T00:00:00.000Z",
   };
 }
 
@@ -143,6 +155,7 @@ describe("getToday completed overdue tasks", () => {
       listActivePlanItems: async () => [task()],
       listCompletionsInRange: async () => [checkedToday],
       listLatestCompletedCompletionsThrough: async () => [checkedToday],
+      listScheduleOverridesInRange: async () => [],
     }, "2026-10-06");
 
     expect(result.overdue).toEqual([]);
@@ -157,6 +170,7 @@ describe("getToday completed overdue tasks", () => {
       listActivePlanItems: async () => [task()],
       listCompletionsInRange: async () => [],
       listLatestCompletedCompletionsThrough: async () => [],
+      listScheduleOverridesInRange: async () => [],
     }, "2026-10-05");
 
     expect(result.plans[0]?.tasks).toMatchObject([
@@ -172,9 +186,54 @@ describe("getCalendar completed overdue tasks", () => {
       listPlans: async () => [plan],
       listTrackableItems: async () => [task()],
       listCompletionsInRange: async () => [checkedOnOctoberSixth],
+      listScheduleOverridesInRange: async () => [],
     }, "2026-10");
 
     expect(result.days.find((day) => day.date === "2026-10-05")).toMatchObject({ total: 1, completed: 0 });
     expect(result.days.find((day) => day.date === "2026-10-06")).toMatchObject({ total: 1, completed: 1 });
+  });
+});
+
+describe("one-time occurrence exchanges", () => {
+  it("shows exchanged habits on each other's dates without changing recurrence", async () => {
+    const legs = habit("legs", "Legs + Core", 3);
+    const rest = habit("rest", "Rest day", 4);
+    const overrides = [
+      scheduleOverride("legs", "2026-10-07", "2026-10-08"),
+      scheduleOverride("rest", "2026-10-08", "2026-10-07"),
+    ];
+    const repo = {
+      ...repository([], overrides),
+      listActivePlanItems: async () => [legs, rest],
+    };
+
+    const wednesday = await getToday(repo, "2026-10-07", "2026-10-06");
+    const thursday = await getToday(repo, "2026-10-08", "2026-10-06");
+
+    expect(wednesday.plans[0]?.habits.map((item) => item.title)).toEqual(["Rest day"]);
+    expect(thursday.plans[0]?.habits.map((item) => item.title)).toEqual(["Legs + Core"]);
+    expect(legs.recurrence_weekdays).toEqual([3]);
+    expect(rest.recurrence_weekdays).toEqual([4]);
+  });
+
+  it("persists both sides of an exchange in one save", async () => {
+    const legs = habit("legs", "Legs + Core", 3);
+    const rest = habit("rest", "Rest day", 4);
+    let saved: { item_id: string; original_date: string; scheduled_date: string }[] = [];
+    const result = await rescheduleOccurrence({
+      getItem: async (id) => id === legs.id ? legs : id === rest.id ? rest : null,
+      listScheduleOverridesInRange: async () => [],
+      listCompletionsForDate: async () => [],
+      saveScheduleOverrides: async (rows) => {
+        saved = rows;
+        return rows.map((row) => scheduleOverride(row.item_id, row.original_date, row.scheduled_date));
+      },
+    }, legs.id, { source_date: "2026-10-07", target_date: "2026-10-08", swap_item_id: rest.id });
+
+    expect(result).toEqual({ ok: true, moved_item_id: "legs", swapped_item_id: "rest" });
+    expect(saved).toEqual([
+      { item_id: "legs", original_date: "2026-10-07", scheduled_date: "2026-10-08" },
+      { item_id: "rest", original_date: "2026-10-08", scheduled_date: "2026-10-07" },
+    ]);
   });
 });

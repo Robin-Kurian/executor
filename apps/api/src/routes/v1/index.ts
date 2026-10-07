@@ -2,14 +2,14 @@ import { Hono, type Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
   CalendarQuerySchema, CreateItemSchema, CreateNoteSchema, CreatePlanSchema, HistoryQuerySchema, IdParamsSchema,
-  NotesQuerySchema, PlanDetailQuerySchema, PlansQuerySchema, ReorderPlansSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema,
+  NotesQuerySchema, PlanDetailQuerySchema, PlansQuerySchema, ReorderPlansSchema, RescheduleOccurrenceSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema,
   UpdateNoteSchema, UpdatePlanSchema, UpsertCompletionSchema,
 } from "@executor/contracts";
 import { dateInTimeZone, localToday } from "@executor/domain";
 import { createDb } from "../../db/client";
 import { parseEnv } from "../../env";
 import { ExecutorRepository } from "../../repositories/executor";
-import { getCalendar, getInbox, getToday, toTodayItem } from "../../services/executor";
+import { getCalendar, getInbox, getToday, rescheduleOccurrence, toTodayItem } from "../../services/executor";
 import type { AppEnv } from "../../types";
 import { pushRoutes } from "./push";
 
@@ -49,6 +49,9 @@ v1.post("/plans/:id/items", zValidator("param", IdParamsSchema), zValidator("jso
 
 v1.get("/items/:id", zValidator("param", IdParamsSchema), async (c) => { const row = await repo(c).getItem(c.req.valid("param").id); return row ? c.json(row) : notFound(c, "Item"); });
 v1.patch("/items/:id", zValidator("param", IdParamsSchema), zValidator("json", UpdateItemSchema), async (c) => { const row = await repo(c).updateItem(c.req.valid("param").id, c.req.valid("json")); return row ? c.json(row) : notFound(c, "Item"); });
+v1.post("/items/:id/reschedule", zValidator("param", IdParamsSchema), zValidator("json", RescheduleOccurrenceSchema), async (c) => (
+  c.json(await rescheduleOccurrence(repo(c), c.req.valid("param").id, c.req.valid("json")))
+));
 v1.delete("/items/:id", zValidator("param", IdParamsSchema), async (c) => (await repo(c).deleteItem(c.req.valid("param").id)) ? c.json({ ok: true }) : notFound(c, "Item"));
 v1.post("/items/:id/completions", zValidator("param", IdParamsSchema), zValidator("json", UpsertCompletionSchema), async (c) => c.json(await repo(c).upsertCompletion({ item_id: c.req.valid("param").id, ...c.req.valid("json") })));
 v1.get("/items/:id/history", zValidator("param", IdParamsSchema), zValidator("query", HistoryQuerySchema), async (c) => {

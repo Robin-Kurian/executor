@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CreateItemSchema, DateOnlySchema, DateTimeSchema, ErrorSchema, PushSubscriptionInputSchema } from "./index";
+import { CreateItemSchema, DateOnlySchema, DateTimeSchema, ErrorSchema, PushSubscriptionInputSchema, RescheduleOccurrenceSchema } from "./index";
 
 describe("API contracts", () => {
   it("rejects impossible civil dates", () => expect(DateOnlySchema.safeParse("2026-02-29").success).toBe(false));
@@ -9,6 +9,10 @@ describe("API contracts", () => {
   });
   it("rejects empty titles and invalid weekdays", () => {
     expect(CreateItemSchema.safeParse({ title: "", recurrence_weekdays: [7] }).success).toBe(false);
+  });
+  it("validates one-time occurrence moves", () => {
+    expect(RescheduleOccurrenceSchema.safeParse({ source_date: "2026-10-07", target_date: "2026-10-08" }).success).toBe(true);
+    expect(RescheduleOccurrenceSchema.safeParse({ source_date: "2026-10-07", target_date: "2026-10-07" }).success).toBe(false);
   });
   it("stabilizes the handled error shape", () => {
     expect(ErrorSchema.parse({ error: "Unauthorized", request_id: "req-1" })).toEqual({ error: "Unauthorized", request_id: "req-1" });

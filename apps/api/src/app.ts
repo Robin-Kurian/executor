@@ -22,7 +22,7 @@ export function createApp() {
   app.get("/health", (c) => c.json({ status: "ok", service: "executor-api", version: "1.0.0" }));
   app.get("/ready", async (c) => {
     await new ExecutorRepository(createDb(parseEnv(c.env).DATABASE_URL)).ping();
-    return c.json({ status: "ready", database: "connected", migration: "0004_item_reminders" });
+    return c.json({ status: "ready", database: "connected", migration: "0007_puzzling_silverclaw" });
   });
   app.get("/api/openapi.json", (c) => c.json(openApiDocument));
   app.get("/api/docs", (c) => c.html("<!doctype html><html><head><title>Executor API</title></head><body><h1>Executor API</h1><p><a href='/api/openapi.json'>OpenAPI 3.1 JSON</a></p></body></html>"));

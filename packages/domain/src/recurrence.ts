@@ -1,5 +1,5 @@
 import { compareDates, weekdayOf } from "./dates";
-import type { Plan, PlanItem } from "./types";
+import type { Plan, PlanItem, ScheduleOverride } from "./types";
 
 export function itemIsOpen(item: PlanItem): boolean {
   return item.status !== "cancelled" && item.status !== "done";
@@ -42,6 +42,29 @@ export function itemScheduledOnDate(item: PlanItem, date: string): boolean {
   if (item.due_date) return item.due_date === date;
   if (item.start_date) return item.start_date === date;
   return false;
+}
+
+/** Applies one-time occurrence moves without changing the item's repeating schedule. */
+export function itemScheduledOnDateWithOverrides(
+  item: PlanItem,
+  date: string,
+  overrides: ScheduleOverride[],
+): boolean {
+  const itemOverrides = overrides.filter((override) => override.item_id === item.id);
+  if (itemOverrides.some((override) => override.scheduled_date === date)) return true;
+  if (itemOverrides.some((override) => override.original_date === date)) return false;
+  return itemScheduledOnDate(item, date);
+}
+
+/** Returns the stable recurrence date behind an occurrence that may already have moved. */
+export function originalOccurrenceDate(
+  item: PlanItem,
+  scheduledDate: string,
+  overrides: ScheduleOverride[],
+): string {
+  return overrides.find(
+    (override) => override.item_id === item.id && override.scheduled_date === scheduledDate,
+  )?.original_date ?? scheduledDate;
 }
 
 export function itemIsOverdueOnDate(item: PlanItem, date: string): boolean {

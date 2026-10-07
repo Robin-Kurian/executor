@@ -2,7 +2,7 @@ import { OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   CalendarQuerySchema, CompletionSchema, CreateItemSchema, CreateNoteSchema, CreatePlanSchema, ErrorSchema,
   HistoryQuerySchema, IdParamsSchema, NoteSchema, NotesQuerySchema, PlanDetailQuerySchema, PlanItemSchema, PlanSchema,
-  PlansQuerySchema, ReorderPlansSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema, UpdateNoteSchema, UpdatePlanSchema,
+  PlansQuerySchema, ReorderPlansSchema, RescheduleOccurrenceResultSchema, RescheduleOccurrenceSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema, UpdateNoteSchema, UpdatePlanSchema,
   UpsertCompletionSchema,
   CreateExpoPushTokenSchema, CreatePushSubscriptionSchema, DeleteExpoPushTokenSchema, DeletePushSubscriptionSchema, PushSubscriptionResultSchema, PushTestResultSchema,
 } from "@executor/contracts";
@@ -43,6 +43,7 @@ register({ method: "get", path: "/api/v1/plans/{id}/items", request: { params: I
 register({ method: "post", path: "/api/v1/plans/{id}/items", request: { params: IdParamsSchema, body: jsonBody(CreateItemSchema) }, responses: created(PlanItemSchema) });
 register({ method: "get", path: "/api/v1/items/{id}", request: { params: IdParamsSchema }, responses: ok(PlanItemSchema) });
 register({ method: "patch", path: "/api/v1/items/{id}", request: { params: IdParamsSchema, body: jsonBody(UpdateItemSchema) }, responses: ok(PlanItemSchema) });
+register({ method: "post", path: "/api/v1/items/{id}/reschedule", request: { params: IdParamsSchema, body: jsonBody(RescheduleOccurrenceSchema) }, responses: ok(RescheduleOccurrenceResultSchema) });
 register({ method: "delete", path: "/api/v1/items/{id}", request: { params: IdParamsSchema }, responses: ok(z.object({ ok: z.boolean() })) });
 register({ method: "post", path: "/api/v1/items/{id}/completions", request: { params: IdParamsSchema, body: jsonBody(UpsertCompletionSchema) }, responses: ok(CompletionSchema) });
 register({ method: "get", path: "/api/v1/items/{id}/history", request: { params: IdParamsSchema, query: HistoryQuerySchema }, responses: ok(z.object({ item: PlanItemSchema, history: z.array(CompletionSchema) })) });

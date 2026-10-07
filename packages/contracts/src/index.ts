@@ -80,6 +80,19 @@ export const ReorderPlansSchema = z.object({ plan_ids: z.array(UuidSchema).min(1
 );
 export const CreateItemSchema = z.object({ ...itemFields, title: z.string().trim().min(1).max(500) });
 export const UpdateItemSchema = z.object({ ...itemFields, plan_id: UuidSchema.optional(), sort_order: z.number().int().optional() });
+export const RescheduleOccurrenceSchema = z.object({
+  source_date: DateOnlySchema,
+  target_date: DateOnlySchema,
+  swap_item_id: UuidSchema.optional(),
+}).refine(({ source_date, target_date }) => source_date !== target_date, {
+  message: "Target date must be different from source date",
+  path: ["target_date"],
+});
+export const RescheduleOccurrenceResultSchema = z.object({
+  ok: z.literal(true),
+  moved_item_id: UuidSchema,
+  swapped_item_id: UuidSchema.nullable(),
+});
 export const UpsertCompletionSchema = z.object({
   date: DateOnlySchema, completed: z.boolean().default(true), value: z.number().finite().nullable().optional(), note: z.string().optional(),
 });

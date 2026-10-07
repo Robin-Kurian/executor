@@ -12,6 +12,7 @@ import { invalidateLifeCache, lifeCacheKey, useLifeQuery } from "./cache";
 import { ItemEditor } from "./ItemEditor";
 import { useLife } from "./LifeProvider";
 import { QuantityTracker } from "./QuantityTracker";
+import { OccurrenceMover } from "./OccurrenceMover";
 import { EmptyState, ItemCheckbox, LifeButton, MissedIndicator, ProgressIndicator } from "./ui";
 import { ListSkeleton } from "./LoadingSkeleton";
 import { executorPaths } from "@/lib/paths";
@@ -65,6 +66,7 @@ function ItemRow({
   readOnlyMissed?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const [moving, setMoving] = useState(false);
   const missedItem = occurrenceLabel && "is_stale" in item ? item : null;
   const completedLate = item.type === "task" && item.recurrence === "none" && item.completed
     ? completedLateByDays(item.due_date, item.completion_date)
@@ -128,9 +130,15 @@ function ItemRow({
           )}
           {showActions && !readOnlyMissed && !item.completed ? (
             <div className="flex shrink-0 gap-1 text-xs text-[--color-text-muted]">
-              <button type="button" onClick={() => move(addDays(date, 1))} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
-                Tomorrow
-              </button>
+              {item.recurrence !== "none" && item.status !== "waiting" ? (
+                <button type="button" onClick={() => setMoving(true)} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
+                  Move
+                </button>
+              ) : (
+                <button type="button" onClick={() => move(addDays(date, 1))} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
+                  Tomorrow
+                </button>
+              )}
               {item.status !== "waiting" ? (
                 <button type="button" onClick={markWaiting} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
                   Wait
@@ -178,6 +186,17 @@ function ItemRow({
           onClose={() => setEditing(false)}
           onSaved={() => {
             setEditing(false);
+            onMoved();
+          }}
+        />
+      ) : null}
+      {!readOnlyMissed && moving ? (
+        <OccurrenceMover
+          item={item}
+          sourceDate={date}
+          onClose={() => setMoving(false)}
+          onMoved={() => {
+            setMoving(false);
             onMoved();
           }}
         />

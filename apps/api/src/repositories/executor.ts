@@ -1,16 +1,17 @@
-import { and, asc, desc, eq, gte, inArray, lte, ne, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import type {
-  ItemCompletion, ItemPriority, ItemStatus, ItemType, Plan, PlanItem, PlanNote, PlanStatus, RecurrenceKind,
+  ItemCompletion, ItemPriority, ItemStatus, ItemType, Plan, PlanItem, PlanNote, PlanStatus, RecurrenceKind, ScheduleOverride,
 } from "@executor/domain";
 import { isQuantityItem, nextQuantityState } from "@executor/domain";
 import type { CreateItemInput, CreatePlanInput, UpdateItemInput, UpdatePlanInput } from "@executor/contracts";
 import type { Database } from "../db/client";
-import { itemCompletions, planItems, planNotes, plans } from "../db/schema";
+import { itemCompletions, planItems, planNotes, plans, scheduleOverrides } from "../db/schema";
 
 type PlanRow = typeof plans.$inferSelect;
 type ItemRow = typeof planItems.$inferSelect;
 type CompletionRow = typeof itemCompletions.$inferSelect;
 type NoteRow = typeof planNotes.$inferSelect;
+type ScheduleOverrideRow = typeof scheduleOverrides.$inferSelect;
 
 const iso = (value: string | Date) => value instanceof Date ? value.toISOString() : new Date(`${value}Z`).toISOString();
 const mapPlan = (row: PlanRow): Plan => ({
@@ -26,6 +27,9 @@ const mapCompletion = (row: CompletionRow): ItemCompletion => ({
   ...row, value: row.value == null ? null : Number(row.value), created_at: iso(row.created_at), updated_at: iso(row.updated_at),
 });
 const mapNote = (row: NoteRow): PlanNote => ({ ...row, created_at: iso(row.created_at), updated_at: iso(row.updated_at) });
+const mapScheduleOverride = (row: ScheduleOverrideRow): ScheduleOverride => ({
+  ...row, created_at: iso(row.created_at), updated_at: iso(row.updated_at),
+});
 
 function defaultStatus(type: ItemType, status?: ItemStatus): ItemStatus {
   if (status) return status;
@@ -145,6 +149,25 @@ export class ExecutorRepository {
   }
   async deleteItem(id: string): Promise<boolean> {
     return (await this.db.delete(planItems).where(eq(planItems.id, id)).returning({ id: planItems.id })).length > 0;
+  }
+
+  async listScheduleOverridesInRange(from: string, to: string): Promise<ScheduleOverride[]> {
+    const rows = await this.db.select().from(scheduleOverrides).where(or(
+      and(gte(scheduleOverrides.original_date, from), lte(scheduleOverrides.original_date, to)),
+      and(gte(scheduleOverrides.scheduled_date, from), lte(scheduleOverrides.scheduled_date, to)),
+    )).limit(4000);
+    return rows.map(mapScheduleOverride);
+  }
+
+  async saveScheduleOverrides(
+    rows: { item_id: string; original_date: string; scheduled_date: string }[],
+  ): Promise<ScheduleOverride[]> {
+    if (!rows.length) return [];
+    const saved = await this.db.insert(scheduleOverrides).values(rows).onConflictDoUpdate({
+      target: [scheduleOverrides.item_id, scheduleOverrides.original_date],
+      set: { scheduled_date: sql`excluded.scheduled_date`, updated_at: sql`now()` },
+    }).returning();
+    return saved.map(mapScheduleOverride);
   }
 
   async listDueReminderItems(from: string, through: string): Promise<PlanItem[]> {
