@@ -41,6 +41,11 @@ function defaultRecurrence(type: ItemType, recurrence?: RecurrenceKind): Recurre
   if (recurrence) return recurrence;
   return type === "habit" || type === "metric" ? "daily" : "none";
 }
+function validateItemDates(startDate: string | null, endDate: string | null): void {
+  if (startDate && endDate && endDate < startDate) {
+    throw Object.assign(new Error("End date must be on or after start date"), { status: 400 });
+  }
+}
 
 export class ExecutorRepository {
   constructor(private readonly db: Database) {}
@@ -115,9 +120,11 @@ export class ExecutorRepository {
   async createItem(planId: string, input: CreateItemInput): Promise<PlanItem> {
     if (!await this.getPlan(planId)) throw Object.assign(new Error("Plan not found"), { status: 404 });
     const type = input.type ?? "task";
+    validateItemDates(input.start_date ?? null, input.end_date ?? null);
     const [row] = await this.db.insert(planItems).values({
       plan_id: planId, title: input.title.trim(), description: input.description?.trim() ?? "", type,
       priority: input.priority ?? "medium", status: defaultStatus(type, input.status), start_date: input.start_date ?? null,
+      end_date: input.end_date ?? null,
       due_date: input.due_date ?? null, reminder_at: input.reminder_at ?? null, recurrence: defaultRecurrence(type, input.recurrence),
       recurrence_weekdays: input.recurrence_weekdays ?? [], waiting_on: input.waiting_on?.trim() ?? "",
       last_follow_up: input.last_follow_up ?? null, next_follow_up: input.next_follow_up ?? null,
@@ -130,11 +137,16 @@ export class ExecutorRepository {
     if (input.plan_id && input.plan_id !== current.plan_id && !await this.getPlan(input.plan_id)) {
       throw Object.assign(new Error("Plan not found"), { status: 404 });
     }
+    validateItemDates(
+      input.start_date === undefined ? current.start_date : input.start_date,
+      input.end_date === undefined ? current.end_date : input.end_date,
+    );
     const [row] = await this.db.update(planItems).set({
       plan_id: input.plan_id ?? current.plan_id, title: input.title?.trim() ?? current.title,
       description: input.description?.trim() ?? current.description, type: input.type ?? current.type,
       priority: input.priority ?? current.priority, status: input.status ?? current.status,
       start_date: input.start_date === undefined ? current.start_date : input.start_date,
+      end_date: input.end_date === undefined ? current.end_date : input.end_date,
       due_date: input.due_date === undefined ? current.due_date : input.due_date,
       reminder_at: input.reminder_at === undefined ? current.reminder_at : input.reminder_at,
       recurrence: input.recurrence ?? current.recurrence, recurrence_weekdays: input.recurrence_weekdays ?? current.recurrence_weekdays,

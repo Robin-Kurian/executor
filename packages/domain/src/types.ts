@@ -60,6 +60,7 @@ export type PlanItem = {
   priority: ItemPriority;
   status: ItemStatus;
   start_date: string | null;
+  end_date: string | null;
   due_date: string | null;
   reminder_at: string | null;
   recurrence: RecurrenceKind;
@@ -180,6 +181,7 @@ export type CreateItemInput = {
   priority?: ItemPriority;
   status?: ItemStatus;
   start_date?: string | null;
+  end_date?: string | null;
   due_date?: string | null;
   reminder_at?: string | null;
   recurrence?: RecurrenceKind;

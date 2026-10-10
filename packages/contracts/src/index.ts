@@ -31,7 +31,7 @@ export const PlanSchema = z.object({
 export const PlanItemSchema = z.object({
   id: UuidSchema, plan_id: UuidSchema, title: z.string(), description: z.string(),
   type: z.enum(ITEM_TYPES), priority: z.enum(ITEM_PRIORITIES), status: z.enum(ITEM_STATUSES),
-  start_date: DateOnlySchema.nullable(), due_date: DateOnlySchema.nullable(), reminder_at: DateTimeSchema.nullable(),
+  start_date: DateOnlySchema.nullable(), end_date: DateOnlySchema.nullable(), due_date: DateOnlySchema.nullable(), reminder_at: DateTimeSchema.nullable(),
   recurrence: z.enum(RECURRENCE_KINDS), recurrence_weekdays: z.array(z.number().int().min(0).max(6)),
   waiting_on: z.string(), last_follow_up: DateOnlySchema.nullable(), next_follow_up: DateOnlySchema.nullable(),
   target_value: z.number().nullable(), unit: z.string(), step_values: z.array(z.number()), sort_order: z.number().int(),
@@ -57,6 +57,7 @@ const itemFields = {
   priority: z.enum(ITEM_PRIORITIES).optional(),
   status: z.enum(ITEM_STATUSES).optional(),
   start_date: nullableDate,
+  end_date: nullableDate,
   due_date: nullableDate,
   reminder_at: nullableDateTime,
   recurrence: z.enum(RECURRENCE_KINDS).optional(),

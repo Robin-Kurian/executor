@@ -26,6 +26,7 @@ function habit(id: string, title: string, weekday: number): PlanItem {
     priority: "medium",
     status: "active",
     start_date: "2026-10-01",
+    end_date: null,
     due_date: null,
     reminder_at: null,
     recurrence: "custom",
@@ -121,6 +122,17 @@ describe("getToday missed habits", () => {
     const result = await getToday(repository(), "2026-10-09", "2026-10-06");
 
     expect(result.plans.flatMap((group) => group.missed)).toEqual([]);
+  });
+
+  it("stops showing missed occurrences after a habit's end date", async () => {
+    const repo = repository();
+    repo.listActivePlanItems = async () => [
+      { ...habit("chest", "Chest + Triceps", 1), end_date: "2026-10-05" },
+    ];
+
+    const result = await getToday(repo, "2026-10-06");
+
+    expect(result.plans).toEqual([]);
   });
 
   it("shows a single lapse for six days and ages it out on the seventh", async () => {

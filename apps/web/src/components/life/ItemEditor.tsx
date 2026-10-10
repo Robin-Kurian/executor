@@ -53,6 +53,7 @@ export function ItemEditor({
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description);
   const [startDate, setStartDate] = useState(item.start_date ?? "");
+  const [endDate, setEndDate] = useState(item.end_date ?? "");
   const [dueDate, setDueDate] = useState(item.due_date ?? "");
   const [reminderAt, setReminderAt] = useState(toLocalDateTime(item.reminder_at));
   const [priority, setPriority] = useState(item.priority);
@@ -89,6 +90,10 @@ export function ItemEditor({
   }
 
   async function save() {
+    if (startDate && endDate && endDate < startDate) {
+      toast.error("End date must be on or after start date");
+      return;
+    }
     setSaving(true);
     try {
       await lifeApi.updateItem(item.id, {
@@ -97,6 +102,7 @@ export function ItemEditor({
         title,
         description,
         start_date: startDate || null,
+        end_date: recurrence !== "none" ? endDate || null : null,
         due_date: dueDate || null,
         reminder_at: reminderAt ? new Date(reminderAt).toISOString() : null,
         priority,
@@ -190,7 +196,7 @@ export function ItemEditor({
             />
           </div>
           <LifeArea
-            className="order-4 col-span-2 min-h-20 lg:col-span-3 lg:min-h-20"
+            className="order-5 col-span-2 min-h-20 lg:col-span-3 lg:min-h-20"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -214,6 +220,17 @@ export function ItemEditor({
               />
             )}
           </div>
+          {recurrence !== "none" ? (
+            <div className="order-4 lg:order-4">
+              <p className="mb-1 text-sm text-[var(--color-text-muted)]">End date</p>
+              <DateField
+                value={endDate || null}
+                onChange={(next) => setEndDate(next ?? "")}
+                placeholder="No end date"
+                ariaLabel="End date"
+              />
+            </div>
+          ) : null}
           <div className="order-5 col-span-2 lg:order-5 lg:col-span-1">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Repeats</p>
             <Select

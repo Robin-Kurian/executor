@@ -14,6 +14,7 @@ export function recurrenceAppliesOnDate(item: PlanItem, date: string): boolean {
 
   const start = item.start_date;
   if (start && compareDates(date, start) < 0) return false;
+  if (item.end_date && compareDates(date, item.end_date) > 0) return false;
 
   switch (item.recurrence) {
     case "daily":
@@ -50,6 +51,8 @@ export function itemScheduledOnDateWithOverrides(
   date: string,
   overrides: ScheduleOverride[],
 ): boolean {
+  if (item.start_date && compareDates(date, item.start_date) < 0) return false;
+  if (item.end_date && compareDates(date, item.end_date) > 0) return false;
   const itemOverrides = overrides.filter((override) => override.item_id === item.id);
   if (itemOverrides.some((override) => override.scheduled_date === date)) return true;
   if (itemOverrides.some((override) => override.original_date === date)) return false;

@@ -11,7 +11,7 @@ const plan: Plan = {
 };
 const item: PlanItem = {
   id: "00000000-0000-4000-8000-000000000002", plan_id: plan.id, title: "Item", description: "",
-  type: "habit", priority: "medium", status: "active", start_date: "2026-09-01", due_date: null,
+  type: "habit", priority: "medium", status: "active", start_date: "2026-09-01", end_date: null, due_date: null,
   reminder_at: null,
   recurrence: "daily", recurrence_weekdays: [], waiting_on: "", last_follow_up: null, next_follow_up: null,
   target_value: null, unit: "", step_values: [], sort_order: 0,
@@ -52,6 +52,11 @@ describe("scheduling", () => {
     expect(recurrenceAppliesOnDate({ ...item, recurrence: "weekly" }, "2026-09-08")).toBe(true);
     expect(recurrenceAppliesOnDate({ ...item, recurrence: "custom", recurrence_weekdays: [4] }, "2026-10-01")).toBe(true);
     expect(itemScheduledOnDate({ ...item, recurrence: "none", start_date: null, due_date: "2026-10-01" }, "2026-10-01")).toBe(true);
+  });
+  it("keeps a repeating item's end date inclusive", () => {
+    const endingItem = { ...item, end_date: "2026-09-03" };
+    expect(recurrenceAppliesOnDate(endingItem, "2026-09-03")).toBe(true);
+    expect(recurrenceAppliesOnDate(endingItem, "2026-09-04")).toBe(false);
   });
 });
 

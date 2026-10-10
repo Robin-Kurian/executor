@@ -43,6 +43,7 @@ export function QuickAdd() {
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [preset, setPreset] = useState<DatePreset>("today");
   const [specific, setSpecific] = useState(date);
+  const [endDate, setEndDate] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [recurrence, setRecurrence] = useState<RecurrenceKind>("none");
   const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -68,6 +69,7 @@ export function QuickAdd() {
     setCreatingPlan(!addDefaults.planId && currentPlans.length === 0);
     setDescription("");
     setReminderAt("");
+    setEndDate("");
     setWaiting(false);
     setWaitingOn("");
     setPriority("medium");
@@ -137,6 +139,11 @@ export function QuickAdd() {
         : type !== "task"
           ? due ?? localToday()
           : null;
+      if (repeating && startDate && endDate && endDate < startDate) {
+        toast.error("End date must be on or after start date");
+        setSaving(false);
+        return;
+      }
       const quantity =
         type === "habit" || type === "metric"
           ? quantityPayload(trackQty, targetValue, unit, steps)
@@ -151,6 +158,7 @@ export function QuickAdd() {
         due_date: type === "task" && !repeating ? ((due ?? reminderAt.slice(0, 10)) || null) : null,
         reminder_at: reminderAt ? new Date(reminderAt).toISOString() : null,
         start_date: startDate,
+        end_date: repeating ? endDate || null : null,
         recurrence,
         recurrence_weekdays: recurrence === "custom" ? weekdays : [],
         ...quantity,
@@ -295,6 +303,17 @@ export function QuickAdd() {
             <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="quick-add-reminder-at">Reminder time</label>
             <DateTimeField id="quick-add-reminder-at" value={reminderAt} onChange={setReminderAt} />
           </div>
+          {recurrence !== "none" ? (
+            <div>
+              <p className="mb-1 text-sm text-[--color-text-muted]">End date</p>
+              <DateField
+                value={endDate || null}
+                onChange={(next) => setEndDate(next ?? "")}
+                placeholder="No end date"
+                ariaLabel="End date"
+              />
+            </div>
+          ) : null}
           <div className="col-span-2 lg:col-span-1">
             <label className="mb-1 block text-sm text-[--color-text-muted]">Repeats</label>
             <Select

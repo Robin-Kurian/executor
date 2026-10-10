@@ -67,7 +67,8 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
     const currentCompletion = completionFor(item.id, date);
     let missedDate: string | null = null;
     let consecutiveMisses = 0;
-    if (includeMissed && item.recurrence !== "none" && !currentCompletion?.completed) {
+    const recurrenceHasEnded = Boolean(item.end_date && date > item.end_date);
+    if (includeMissed && item.recurrence !== "none" && !recurrenceHasEnded && !currentCompletion?.completed) {
       for (let daysAgo = 1; daysAgo <= MISSED_HISTORY_DAYS; daysAgo++) {
         const candidate = addDays(date, -daysAgo);
         if (planVisibleOnToday(plan, candidate) && itemScheduledOnDateWithOverrides(item, candidate, scheduleOverrides)) {

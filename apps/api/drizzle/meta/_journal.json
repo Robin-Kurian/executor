@@ -57,6 +57,13 @@
       "when": 1791398750675,
       "tag": "0007_puzzling_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791628979585,
+      "tag": "0008_special_blacklash",
+      "breakpoints": true
     }
   ]
 }
