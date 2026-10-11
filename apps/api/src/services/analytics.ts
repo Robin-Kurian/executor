@@ -1,4 +1,5 @@
-import { addDays } from "@executor/domain";
+import { addDays, daysInclusive, itemScheduledOnDateWithOverrides, planVisibleOnToday } from "@executor/domain";
+import type { ItemCompletion, Plan, PlanItem, ScheduleOverride } from "@executor/domain";
 import type { AnalyticsPayload } from "@executor/contracts";
 import type { RuntimeEnv } from "../env";
 
@@ -8,6 +9,10 @@ type AnalyticsRepository = {
     completedOneTimeTasks: number;
     openItems: number;
   }>;
+  listPlans(includeArchived: boolean): Promise<Plan[]>;
+  listTrackableItems(): Promise<PlanItem[]>;
+  listCompletionsInRange(from: string, to: string): Promise<ItemCompletion[]>;
+  listScheduleOverridesInRange(from: string, to: string): Promise<ScheduleOverride[]>;
 };
 
 type NeonConsumptionResponse = {
@@ -41,6 +46,44 @@ function streaks(daily: AnalyticsPayload["daily"]) {
   if (index >= 0 && daily[index]!.completions === 0) index -= 1;
   for (; index >= 0 && daily[index]!.completions > 0; index -= 1) current += 1;
   return { current, best };
+}
+
+function planCountedOnDate(plan: Plan, date: string): boolean {
+  if (plan.status === "archived" || plan.status === "paused") return false;
+  if (plan.status === "completed") {
+    return (!plan.start_date || date >= plan.start_date) && (!plan.end_date || date <= plan.end_date);
+  }
+  return planVisibleOnToday(plan, date);
+}
+
+function countFailures(
+  periodStart: string,
+  today: string,
+  plans: Plan[],
+  items: PlanItem[],
+  completions: ItemCompletion[],
+  overrides: ScheduleOverride[],
+): number {
+  const completed = new Set(
+    completions.filter((row) => row.completed).map((row) => `${row.date}:${row.item_id}`),
+  );
+  const planById = new Map(plans.map((plan) => [plan.id, plan]));
+  let failures = 0;
+
+  // Today is still in progress, so only completed calendar days can fail.
+  for (let offset = 0; offset < daysInclusive(periodStart, today) - 1; offset += 1) {
+    const date = addDays(periodStart, offset);
+    for (const item of items) {
+      const plan = planById.get(item.plan_id);
+      if (
+        plan &&
+        planCountedOnDate(plan, date) &&
+        itemScheduledOnDateWithOverrides(item, date, overrides) &&
+        !completed.has(`${date}:${item.id}`)
+      ) failures += 1;
+    }
+  }
+  return failures;
 }
 
 async function getNeonUsage(env: RuntimeEnv, today: string): Promise<AnalyticsPayload["neon"]> {
@@ -110,9 +153,13 @@ export async function getAnalytics(
   today: string,
 ): Promise<AnalyticsPayload> {
   const periodStart = addDays(today, -29);
-  const [activity, neon] = await Promise.all([
+  const [activity, neon, plans, items, completions, overrides] = await Promise.all([
     repository.getAnalytics(periodStart, today),
     getNeonUsage(env, today),
+    repository.listPlans(true),
+    repository.listTrackableItems(),
+    repository.listCompletionsInRange(periodStart, today),
+    repository.listScheduleOverridesInRange(periodStart, today),
   ]);
   const completed = activity.daily.reduce((total, day) => total + day.completions, 0);
   const { current, best } = streaks(activity.daily);
@@ -121,6 +168,7 @@ export async function getAnalytics(
     period_start: periodStart,
     period_end: today,
     completed,
+    failures: countFailures(periodStart, today, plans, items, completions, overrides),
     task_completions: activity.daily.reduce((total, day) => total + day.tasks, 0),
     habit_completions: activity.daily.reduce((total, day) => total + day.habits, 0),
     active_days: activity.daily.filter((day) => day.completions > 0).length,

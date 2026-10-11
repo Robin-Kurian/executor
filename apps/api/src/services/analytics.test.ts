@@ -2,6 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 import type { RuntimeEnv } from "../env";
 import { getAnalytics } from "./analytics";
 
+const plan = {
+  id: "plan-1", name: "Health", description: "", icon: "", color: "", status: "active" as const,
+  start_date: "2026-10-09", end_date: null, sort_order: 0,
+  created_at: "2026-10-09T00:00:00.000Z", updated_at: "2026-10-09T00:00:00.000Z",
+};
+const habit = {
+  id: "habit-1", plan_id: plan.id, title: "Walk", description: "", type: "habit" as const,
+  priority: "medium" as const, status: "active" as const, start_date: "2026-10-09", end_date: null,
+  due_date: null, reminder_at: null, recurrence: "daily" as const, recurrence_weekdays: [], waiting_on: "",
+  last_follow_up: null, next_follow_up: null, target_value: null, unit: "", step_values: [], sort_order: 0,
+  created_at: "2026-10-09T00:00:00.000Z", updated_at: "2026-10-09T00:00:00.000Z",
+};
+
 const env = {
   DATABASE_URL: "postgresql://user:password@example.invalid/database?sslmode=require",
   BETTER_AUTH_SECRET: "test-secret-that-is-at-least-thirty-two-characters",
@@ -28,6 +41,13 @@ function repository() {
       completedOneTimeTasks: 7,
       openItems: 4,
     }),
+    listPlans: async () => [plan],
+    listTrackableItems: async () => [habit],
+    listCompletionsInRange: async () => [{
+      id: "completion-1", item_id: habit.id, date: "2026-10-09", completed: true, value: null, note: "",
+      created_at: "2026-10-09T00:00:00.000Z", updated_at: "2026-10-09T00:00:00.000Z",
+    }],
+    listScheduleOverridesInRange: async () => [],
   };
 }
 
@@ -39,6 +59,7 @@ describe("analytics", () => {
       period_start: "2026-09-12",
       period_end: "2026-10-11",
       completed: 3,
+      failures: 1,
       task_completions: 1,
       habit_completions: 2,
       active_days: 2,

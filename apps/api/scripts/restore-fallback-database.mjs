@@ -55,6 +55,7 @@ await run(postgresCommand("pg_restore"), [
   "--exit-on-error",
   "--no-owner",
   "--no-privileges",
+  "--dbname", decodeURIComponent(target.parsed.pathname.replace(/^\//, "")),
   backup,
 ], postgresEnvironment(target.parsed));
 console.log(`Fallback database restored from ${backup}`);

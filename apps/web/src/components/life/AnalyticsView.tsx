@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, CheckCheck, Flame, Gauge, ListTodo, Target } from "lucide-react";
+import { Activity, CheckCheck, CircleX, Flame, Gauge, ListTodo, Medal, Target } from "lucide-react";
 import { formatDayMonth } from "@executor/domain/dates";
 import { lifeApi } from "./api";
 import { lifeCacheKey, useLifeQuery } from "./cache";
@@ -12,20 +12,22 @@ function StatCard({
   label,
   value,
   detail,
+  danger = false,
 }: {
   icon: typeof Activity;
   label: string;
   value: string | number;
   detail: string;
+  danger?: boolean;
 }) {
   return (
-    <article className="apple-glass rounded-3xl border p-5">
+    <article className="apple-glass min-w-0 rounded-2xl border p-3 sm:rounded-3xl sm:p-4 xl:p-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-[var(--color-text-secondary)]">{label}</p>
-        <Icon className="h-5 w-5 text-[var(--color-accent)]" aria-hidden />
+        <p className="min-w-0 text-xs text-[var(--color-text-secondary)] sm:text-sm">{label}</p>
+        <Icon className={`h-4 w-4 shrink-0 sm:h-5 sm:w-5 ${danger ? "text-status-danger" : "text-[var(--color-accent)]"}`} aria-hidden />
       </div>
-      <p className="mt-3 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
-      <p className="mt-1 text-xs text-[var(--color-text-muted)]">{detail}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums sm:mt-3 sm:text-3xl">{value}</p>
+      <p className="mt-1 hidden text-xs leading-4 text-[var(--color-text-muted)] sm:block">{detail}</p>
     </article>
   );
 }
@@ -84,10 +86,12 @@ export function AnalyticsView() {
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">Your last 30 days, through {formatDayMonth(data.period_end)}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:grid-cols-6">
         <StatCard icon={CheckCheck} label="Completions" value={data.completed} detail={`${data.task_completions} tasks · ${data.habit_completions} habits`} />
+        <StatCard icon={CircleX} label="Failures" value={data.failures} detail="Missed scheduled items" danger />
         <StatCard icon={Activity} label="Active days" value={`${data.active_days}/30`} detail={`${Math.round((data.active_days / 30) * 100)}% consistency`} />
-        <StatCard icon={Flame} label="Current streak" value={`${data.current_streak}d`} detail={`Best in this period: ${data.best_streak} days`} />
+        <StatCard icon={Flame} label="Current streak" value={`${data.current_streak}d`} detail="Active-day streak" />
+        <StatCard icon={Medal} label="Best streak" value={`${data.best_streak}d`} detail="Best in this period" />
         <StatCard icon={ListTodo} label="Open items" value={data.open_items} detail={`${data.completed_one_time_tasks} one-time tasks finished`} />
       </div>
 

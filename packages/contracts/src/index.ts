@@ -135,6 +135,7 @@ export const AnalyticsSchema = z.object({
   period_start: DateOnlySchema,
   period_end: DateOnlySchema,
   completed: z.number().int().nonnegative(),
+  failures: z.number().int().nonnegative(),
   task_completions: z.number().int().nonnegative(),
   habit_completions: z.number().int().nonnegative(),
   active_days: z.number().int().nonnegative(),

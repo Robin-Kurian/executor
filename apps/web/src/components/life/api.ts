@@ -6,6 +6,7 @@ export type AnalyticsPayload = {
   period_start: string;
   period_end: string;
   completed: number;
+  failures: number;
   task_completions: number;
   habit_completions: number;
   active_days: number;
