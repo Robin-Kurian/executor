@@ -1,4 +1,10 @@
 DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+FALLBACK_DATABASE_URL=postgresql://user:password@fallback-host/database?sslmode=require
+# Optional: enables the CU-hours card on /analytics. Keep the API key secret.
+NEON_API_KEY=
+NEON_ORG_ID=
+NEON_PROJECT_ID=
+NEON_CU_LIMIT_CU_HOURS=100
 BETTER_AUTH_SECRET=replace-with-at-least-32-random-characters
 APP_ENV=local
 WEB_ORIGIN=http://localhost:3000

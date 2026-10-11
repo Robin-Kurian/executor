@@ -37,6 +37,7 @@ pnpm-debug.log*
 .DS_Store
 *.tsbuildinfo
 worker-configuration.d.ts
+backups/*.dump
 
 # Expo prebuild output accidentally generated from the monorepo root
 /android/

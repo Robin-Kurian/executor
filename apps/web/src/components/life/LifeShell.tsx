@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import toast from "react-hot-toast";
-import { CalendarDays, Inbox, LayoutList, LogOut, Plus, Sun } from "lucide-react";
+import { BarChart3, CalendarDays, Inbox, LayoutList, LogOut, Plus, Sun } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { NotificationSettings } from "@/components/pwa/NotificationSettings";
 import { cn } from "@/lib/cn";
@@ -163,6 +163,18 @@ function ShellInner({ children }: { children: ReactNode }) {
               Add
             </button>
             <div className="header-action-group">
+              <Link
+                href={executorPaths.analytics}
+                aria-label="Analytics"
+                title="Analytics"
+                aria-current={pathname.startsWith(executorPaths.analytics) ? "page" : undefined}
+                className={cn(
+                  "header-icon-control rounded-xl text-[--color-text-secondary] transition-colors hover:text-[--color-text-primary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/60",
+                  pathname.startsWith(executorPaths.analytics) && "text-[--color-accent]",
+                )}
+              >
+                <BarChart3 className="h-5 w-5" aria-hidden />
+              </Link>
               <ThemeToggle tooltipPlacement="bottom" className="header-icon-control" />
               <NotificationSettings className="header-icon-control" />
               <button

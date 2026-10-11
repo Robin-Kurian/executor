@@ -11,7 +11,11 @@
       "VAPID_PUBLIC_KEY",
       "VAPID_PRIVATE_KEY",
       "VAPID_SUBJECT",
-      "ADMIN_BOOTSTRAP_TOKEN"
+      "ADMIN_BOOTSTRAP_TOKEN",
+      "NEON_API_KEY",
+      "NEON_ORG_ID",
+      "NEON_PROJECT_ID",
+      "NEON_CU_LIMIT_CU_HOURS"
     ]
   },
   "vars": {

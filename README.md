@@ -48,6 +48,8 @@ Local URLs:
 | `npm run build` | Build web and dry-run bundle API |
 | `npm run db:generate` | Generate committed Drizzle migrations |
 | `npm run db:migrate` | Apply migrations using `apps/api/.dev.vars` |
+| `npm run db:backup` | Dump `DATABASE_URL` to a timestamped file in `backups/` |
+| `npm run db:restore:fallback` | Restore the newest dump to `FALLBACK_DATABASE_URL` after confirmation |
 | `npm run update-connection` | Prompt for and update the production API `DATABASE_URL` secret |
 | `npm run api:deploy` | Deploy the API Worker |
 | `npm run web:deploy` | Build and deploy the OpenNext PWA Worker |

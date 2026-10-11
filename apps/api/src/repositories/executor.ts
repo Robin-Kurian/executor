@@ -52,6 +52,47 @@ export class ExecutorRepository {
 
   async ping(): Promise<void> { await this.db.execute(sql`select 1`); }
 
+  async getAnalytics(from: string, to: string): Promise<{
+    daily: { date: string; completions: number; tasks: number; habits: number }[];
+    completedOneTimeTasks: number;
+    openItems: number;
+  }> {
+    const result = await this.db.execute<{
+      date: string;
+      completions: number | string;
+      tasks: number | string;
+      habits: number | string;
+      completed_one_time_tasks: number | string;
+      open_items: number | string;
+    }>(sql`
+      select
+        days.day::text as date,
+        count(${itemCompletions.id}) filter (where ${itemCompletions.completed} = true)::int as completions,
+        count(${itemCompletions.id}) filter (where ${itemCompletions.completed} = true and ${planItems.type} = 'task')::int as tasks,
+        count(${itemCompletions.id}) filter (where ${itemCompletions.completed} = true and ${planItems.type} in ('habit', 'metric'))::int as habits,
+        (select count(*)::int from ${planItems} where ${planItems.type} = 'task' and ${planItems.recurrence} = 'none' and ${planItems.status} = 'done') as completed_one_time_tasks,
+        (select count(*)::int from ${planItems} item inner join ${plans} plan on plan.id = item.plan_id
+          where plan.status <> 'archived' and item.status not in ('done', 'cancelled')) as open_items
+      from generate_series(${from}::date, ${to}::date, interval '1 day') as days(day)
+      left join ${itemCompletions} on ${itemCompletions.date} = days.day and ${itemCompletions.completed} = true
+      left join ${planItems} on ${planItems.id} = ${itemCompletions.item_id}
+      group by days.day
+      order by days.day
+    `);
+    const rows = result.rows;
+    const first = rows[0];
+    return {
+      daily: rows.map((row) => ({
+        date: row.date.slice(0, 10),
+        completions: Number(row.completions),
+        tasks: Number(row.tasks),
+        habits: Number(row.habits),
+      })),
+      completedOneTimeTasks: Number(first?.completed_one_time_tasks ?? 0),
+      openItems: Number(first?.open_items ?? 0),
+    };
+  }
+
   async listPlans(includeArchived = false): Promise<Plan[]> {
     const rows = includeArchived
       ? await this.db.select().from(plans).orderBy(asc(plans.sort_order), asc(plans.created_at))

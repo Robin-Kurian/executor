@@ -125,4 +125,17 @@ If a Firebase API key is exposed, rotate it in Google Cloud, download a fresh `g
 
 ## Backups and secret rotation
 
-Use your PostgreSQL provider’s backup and restore facilities and keep exports outside the repository. To rotate a database credential, update the local `DATABASE_URL`, then run `npm run update-connection` from the repository root and paste the new value only at the prompt. The command updates the production Worker secret; it does not read or upload `.dev.vars`. Deploy with `npm run api:deploy` afterward if you also changed code or configuration. Rotate `BETTER_AUTH_SECRET` only with an intentional session invalidation plan. Rotate `ADMIN_BOOTSTRAP_TOKEN` after initial provisioning or whenever its confidentiality is uncertain, then update both the local secret and Cloudflare Worker secret before the next bootstrap attempt. Remove temporary bootstrap credentials from shell history and secret stores.
+Install PostgreSQL client tools (`pg_dump` and `pg_restore`) and set both `DATABASE_URL` and `FALLBACK_DATABASE_URL` in the ignored `apps/api/.dev.vars`. Create a local custom-format dump with `npm run db:backup`. Dumps are timestamped in `backups/` and ignored by Git. Restore the newest dump with `npm run db:restore:fallback`, or restore a specific file with `npm run db:restore:fallback -- backups/executor-YYYYMMDDTHHMMSSZ.dump`. Restore asks for the word `RESTORE`; trusted non-interactive recovery can append `--yes`. The restore script refuses to run if source and fallback URLs are identical. These commands pass database credentials through the subprocess environment rather than command arguments, but backup files still contain all application and authentication data and must be stored securely.
+
+The `/analytics` screen queries task activity with one aggregate SQL request. Its Neon card is fetched only when that screen is opened. To enable it locally, set `NEON_API_KEY`, `NEON_ORG_ID`, and `NEON_PROJECT_ID` in `.dev.vars`; set `NEON_CU_LIMIT_CU_HOURS` to `100` (or your actual allowance). For production, set all four as Worker secrets so the same tracked configuration safely supports the optional integration:
+
+```bash
+npx wrangler secret put NEON_API_KEY --config wrangler.production.private.jsonc
+npx wrangler secret put NEON_ORG_ID --config wrangler.production.private.jsonc
+npx wrangler secret put NEON_PROJECT_ID --config wrangler.production.private.jsonc
+npx wrangler secret put NEON_CU_LIMIT_CU_HOURS --config wrangler.production.private.jsonc
+```
+
+Neon's project consumption endpoint does not wake a suspended compute. Consumption history is plan-dependent; the card reports an unavailable state instead of failing the rest of analytics when Neon returns an error.
+
+To rotate a database credential, update the local `DATABASE_URL`, then run `npm run update-connection` from the repository root and paste the new value only at the prompt. The command updates the production Worker secret; it does not read or upload `.dev.vars`. Deploy with `npm run api:deploy` afterward if you also changed code or configuration. Rotate `BETTER_AUTH_SECRET` only with an intentional session invalidation plan. Rotate `ADMIN_BOOTSTRAP_TOKEN` after initial provisioning or whenever its confidentiality is uncertain, then update both the local secret and Cloudflare Worker secret before the next bootstrap attempt. Remove temporary bootstrap credentials from shell history and secret stores.

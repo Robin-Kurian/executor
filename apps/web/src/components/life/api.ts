@@ -1,6 +1,29 @@
 import type { Plan, PlanDetailPayload, PlanItem, PlanNote, TodayItem, TodayPayload } from "@executor/domain/types";
 import { EXECUTOR_API } from "@/lib/paths";
 
+export type AnalyticsPayload = {
+  period_days: 30;
+  period_start: string;
+  period_end: string;
+  completed: number;
+  task_completions: number;
+  habit_completions: number;
+  active_days: number;
+  current_streak: number;
+  best_streak: number;
+  completed_one_time_tasks: number;
+  open_items: number;
+  daily: { date: string; completions: number; tasks: number; habits: number }[];
+  neon: {
+    status: "available" | "not_configured" | "unavailable";
+    used_cu_hours: number | null;
+    limit_cu_hours: number;
+    period_start: string;
+    period_end: string;
+    message: string | null;
+  };
+};
+
 async function parseError(res: Response): Promise<string> {
   const data = (await res.json().catch(() => ({}))) as { error?: string };
   return data.error || `Request failed (${res.status})`;
@@ -20,6 +43,7 @@ export async function lifeFetch<T>(url: string, init?: RequestInit): Promise<T> 
 }
 
 export const lifeApi = {
+  analytics: () => lifeFetch<AnalyticsPayload>(`${EXECUTOR_API}/analytics`),
   today: (date: string) => lifeFetch<TodayPayload>(`${EXECUTOR_API}/today?date=${date}`),
   inbox: () => lifeFetch<TodayItem[]>(`${EXECUTOR_API}/inbox`),
   plans: (archived = false) =>

@@ -12,6 +12,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:backup": "node scripts/backup-database.mjs",
+    "db:restore:fallback": "node scripts/restore-fallback-database.mjs",
     "update-connection": "wrangler secret put DATABASE_URL --config wrangler.production.private.jsonc",
     "auth:bootstrap-owner": "tsx scripts/bootstrap-owner.ts",
     "auth:grant-admin": "tsx scripts/grant-admin.ts"

@@ -18,6 +18,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "db:generate": "npm run db:generate -w @executor/api",
     "db:migrate": "npm run db:migrate -w @executor/api",
+    "db:backup": "npm run db:backup -w @executor/api",
+    "db:restore:fallback": "npm run db:restore:fallback -w @executor/api",
     "update-connection": "npm run update-connection -w @executor/api",
     "api:deploy": "npm run deploy -w @executor/api",
     "web:deploy": "npm run deploy -w @executor/web",

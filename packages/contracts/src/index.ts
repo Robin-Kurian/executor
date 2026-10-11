@@ -116,6 +116,36 @@ export const HistoryQuerySchema = z.object({ from: DateOnlySchema.optional(), to
 );
 export const NotesQuerySchema = z.object({ plan_id: UuidSchema.optional(), item_id: UuidSchema.optional(), date: DateOnlySchema.optional() });
 
+export const AnalyticsDaySchema = z.object({
+  date: DateOnlySchema,
+  completions: z.number().int().nonnegative(),
+  tasks: z.number().int().nonnegative(),
+  habits: z.number().int().nonnegative(),
+});
+export const NeonUsageSchema = z.object({
+  status: z.enum(["available", "not_configured", "unavailable"]),
+  used_cu_hours: z.number().nonnegative().nullable(),
+  limit_cu_hours: z.number().positive(),
+  period_start: DateOnlySchema,
+  period_end: DateOnlySchema,
+  message: z.string().nullable(),
+});
+export const AnalyticsSchema = z.object({
+  period_days: z.literal(30),
+  period_start: DateOnlySchema,
+  period_end: DateOnlySchema,
+  completed: z.number().int().nonnegative(),
+  task_completions: z.number().int().nonnegative(),
+  habit_completions: z.number().int().nonnegative(),
+  active_days: z.number().int().nonnegative(),
+  current_streak: z.number().int().nonnegative(),
+  best_streak: z.number().int().nonnegative(),
+  completed_one_time_tasks: z.number().int().nonnegative(),
+  open_items: z.number().int().nonnegative(),
+  daily: z.array(AnalyticsDaySchema),
+  neon: NeonUsageSchema,
+});
+
 const PushKeySchema = z.string().min(16).max(512).regex(/^[A-Za-z0-9_-]+$/, "Must be base64url encoded");
 export const PushSubscriptionInputSchema = z.object({
   endpoint: z.string().url().max(4096).refine((value) => value.startsWith("https://"), "Push endpoint must use HTTPS"),
@@ -135,3 +165,4 @@ export type UpdatePlanInput = z.infer<typeof UpdatePlanSchema>;
 export type CreateItemInput = z.infer<typeof CreateItemSchema>;
 export type UpdateItemInput = z.infer<typeof UpdateItemSchema>;
 export type PushSubscriptionInput = z.infer<typeof PushSubscriptionInputSchema>;
+export type AnalyticsPayload = z.infer<typeof AnalyticsSchema>;

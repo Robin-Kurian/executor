@@ -10,6 +10,7 @@ import { createDb } from "../../db/client";
 import { parseEnv } from "../../env";
 import { ExecutorRepository } from "../../repositories/executor";
 import { getCalendar, getInbox, getToday, rescheduleOccurrence, toTodayItem } from "../../services/executor";
+import { getAnalytics } from "../../services/analytics";
 import type { AppEnv } from "../../types";
 import { pushRoutes } from "./push";
 
@@ -25,6 +26,10 @@ v1.get("/today", zValidator("query", TodayQuerySchema), async (c) => {
 });
 v1.get("/calendar", zValidator("query", CalendarQuerySchema), async (c) => c.json(await getCalendar(repo(c), c.req.valid("query").month)));
 v1.get("/inbox", async (c) => c.json(await getInbox(repo(c))));
+v1.get("/analytics", async (c) => {
+  const env = parseEnv(c.env);
+  return c.json(await getAnalytics(repo(c), env, dateInTimeZone(Date.now(), "Asia/Kolkata")));
+});
 
 v1.get("/plans", zValidator("query", PlansQuerySchema), async (c) => c.json(await repo(c).listPlans(c.req.valid("query").include_archived === "true")));
 v1.post("/plans", zValidator("json", CreatePlanSchema), async (c) => c.json(await repo(c).createPlan(c.req.valid("json")), 201));
