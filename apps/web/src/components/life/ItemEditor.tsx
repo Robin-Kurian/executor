@@ -169,8 +169,8 @@ export function ItemEditor({
         ))}
       </div>
       <div className="mt-4 space-y-4">
-        <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)_minmax(15rem,1fr)]">
-          <div className="order-1 col-span-2 lg:col-span-1">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <div className="col-span-2 lg:col-span-3">
             <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-title">
               Title
             </label>
@@ -180,58 +180,70 @@ export function ItemEditor({
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
-          <div className="order-2 lg:order-2">
-            <label className="mb-1 block text-sm text-[--color-text-muted]" htmlFor="item-plan">
-              Plan
-            </label>
-            <Select
-              id="item-plan"
-              variant="surface"
-              options={plans.map((plan) => ({ value: plan.id, label: plan.name }))}
-              value={planId}
-              onChange={(value) => {
-                if (value) setPlanId(value);
-              }}
-              ariaLabel="Item plan"
-            />
+          <div
+            className={`col-span-2 grid gap-2 sm:gap-3 lg:col-span-3 ${
+              recurrence !== "none"
+                ? "grid-cols-[minmax(0,1.2fr)_repeat(2,minmax(0,1fr))] lg:grid-cols-[minmax(0,1.6fr)_repeat(2,minmax(0,1fr))]"
+                : "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
+            }`}
+          >
+            <div className="min-w-0">
+              <label className="mb-1 block text-xs text-[--color-text-muted] sm:text-sm" htmlFor="item-plan">
+                Plan
+              </label>
+              <Select
+                id="item-plan"
+                variant="surface"
+                className="[&_button]:px-2 [&_button]:text-xs sm:[&_button]:px-3 sm:[&_button]:text-sm"
+                options={plans.map((plan) => ({ value: plan.id, label: plan.name }))}
+                value={planId}
+                onChange={(value) => {
+                  if (value) setPlanId(value);
+                }}
+                ariaLabel="Item plan"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="mb-1 text-xs text-[var(--color-text-muted)] sm:text-sm">
+                {recurrence !== "none" ? "Start date" : "Due date"}
+              </p>
+              {recurrence !== "none" ? (
+                <DateField
+                  value={startDate || null}
+                  onChange={(next) => setStartDate(next ?? "")}
+                  placeholder="Starts today"
+                  ariaLabel="Start date"
+                  compact
+                />
+              ) : (
+                <DateField
+                  value={dueDate || null}
+                  onChange={(next) => setDueDate(next ?? "")}
+                  placeholder="No due date"
+                  ariaLabel="Due date"
+                  compact
+                />
+              )}
+            </div>
+            {recurrence !== "none" ? (
+              <div className="min-w-0">
+                <p className="mb-1 text-xs text-[var(--color-text-muted)] sm:text-sm">End date</p>
+                <DateField
+                  value={endDate || null}
+                  onChange={(next) => setEndDate(next ?? "")}
+                  placeholder="No end date"
+                  ariaLabel="End date"
+                  compact
+                />
+              </div>
+            ) : null}
           </div>
           <LifeArea
-            className="order-5 col-span-2 min-h-20 lg:col-span-3 lg:min-h-20"
+            className="col-span-2 min-h-20 lg:col-span-3 lg:min-h-20"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          <div className="order-3 lg:order-3">
-            <p className="mb-1 text-sm text-[var(--color-text-muted)]">
-              {recurrence !== "none" ? "Start date" : "Due date"}
-            </p>
-            {recurrence !== "none" ? (
-              <DateField
-                value={startDate || null}
-                onChange={(next) => setStartDate(next ?? "")}
-                placeholder="Starts today"
-                ariaLabel="Start date"
-              />
-            ) : (
-              <DateField
-                value={dueDate || null}
-                onChange={(next) => setDueDate(next ?? "")}
-                placeholder="No due date"
-                ariaLabel="Due date"
-              />
-            )}
-          </div>
-          {recurrence !== "none" ? (
-            <div className="order-4 lg:order-4">
-              <p className="mb-1 text-sm text-[var(--color-text-muted)]">End date</p>
-              <DateField
-                value={endDate || null}
-                onChange={(next) => setEndDate(next ?? "")}
-                placeholder="No end date"
-                ariaLabel="End date"
-              />
-            </div>
-          ) : null}
-          <div className="order-5 col-span-2 lg:order-5 lg:col-span-1">
+          <div className="col-span-2 lg:col-span-1">
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Repeats</p>
             <Select
               variant="surface"
@@ -264,7 +276,7 @@ export function ItemEditor({
               </div>
             ) : null}
           </div>
-          <div className="order-6 lg:order-7">
+          <div>
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Priority</p>
             <div className="flex w-full isolate">
               {(["low", "medium", "high"] as const).map((value) => (
@@ -281,7 +293,7 @@ export function ItemEditor({
               ))}
             </div>
           </div>
-          <div className="order-6 lg:order-8">
+          <div>
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Status</p>
             <Select
               variant="surface"

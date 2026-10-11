@@ -30,6 +30,7 @@ export function DateField({
   allowClear = true,
   ariaLabel,
   menuClassName,
+  compact = false,
 }: {
   value: string | null;
   onChange: (date: string | null) => void;
@@ -37,6 +38,7 @@ export function DateField({
   allowClear?: boolean;
   ariaLabel?: string;
   menuClassName?: string;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState(() => (value ?? localToday()).slice(0, 7));
@@ -203,14 +205,18 @@ export function DateField({
           setMonth((value ?? localToday()).slice(0, 7));
           setOpen((o) => !o);
         }}
-        className={cn(lifeFieldClass, "flex cursor-pointer items-center justify-between text-left")}
+        className={cn(
+          lifeFieldClass,
+          "flex cursor-pointer items-center justify-between text-left",
+          compact && "px-2 text-xs sm:px-3 sm:text-sm",
+        )}
       >
         <span className={cn("min-w-0 truncate", !value && "text-[--color-text-muted]")}>
           {value ? shortDate(value) : placeholder}
         </span>
-        <span className="ml-2 flex shrink-0 items-center gap-1 text-[--color-text-muted]">
+        <span className={cn("flex shrink-0 items-center text-[--color-text-muted]", compact ? "ml-1 gap-0.5 sm:ml-2 sm:gap-1" : "ml-2 gap-1")}>
           <CalendarDays className="h-4 w-4" aria-hidden />
-          <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+          <ChevronDown className={cn("h-4 w-4 transition-transform", compact && "hidden sm:block", open && "rotate-180")} />
         </span>
       </button>
       {open && typeof document !== "undefined"
