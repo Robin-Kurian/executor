@@ -33,18 +33,25 @@ type NeonProjectResponse = {
   };
 };
 
-function streaks(daily: AnalyticsPayload["daily"]) {
+type DayOutcome = { scheduled: number; completed: number };
+
+function streaks(daily: AnalyticsPayload["daily"], outcomes: Map<string, DayOutcome>) {
+  const isComplete = (date: string) => {
+    const outcome = outcomes.get(date);
+    return Boolean(outcome && outcome.scheduled > 0 && outcome.completed === outcome.scheduled);
+  };
   let best = 0;
   let running = 0;
   for (const day of daily) {
-    running = day.completions > 0 ? running + 1 : 0;
+    running = isComplete(day.date) ? running + 1 : 0;
     best = Math.max(best, running);
   }
   let current = 0;
   let index = daily.length - 1;
-  // Today may still be in progress. Preserve a streak that was alive yesterday.
-  if (index >= 0 && daily[index]!.completions === 0) index -= 1;
-  for (; index >= 0 && daily[index]!.completions > 0; index -= 1) current += 1;
+  // Today may still be in progress. Preserve a streak that was alive yesterday
+  // until every item scheduled today has been completed.
+  if (index >= 0 && !isComplete(daily[index]!.date)) index -= 1;
+  for (; index >= 0 && isComplete(daily[index]!.date); index -= 1) current += 1;
   return { current, best };
 }
 
@@ -56,34 +63,48 @@ function planCountedOnDate(plan: Plan, date: string): boolean {
   return planVisibleOnToday(plan, date);
 }
 
-function countFailures(
+function scheduledOnHistoricalDate(item: PlanItem, date: string, overrides: ScheduleOverride[]): boolean {
+  if (item.type !== "habit" && item.type !== "metric" && item.type !== "task") return false;
+  // Completing a one-time task changes its current status to "done". Restore an
+  // open status while evaluating its historical due date so it remains part of
+  // that day's denominator.
+  const historicalItem = item.status === "done" && item.recurrence === "none"
+    ? { ...item, status: "todo" as const }
+    : item;
+  return itemScheduledOnDateWithOverrides(historicalItem, date, overrides);
+}
+
+function dailyOutcomes(
   periodStart: string,
   today: string,
   plans: Plan[],
   items: PlanItem[],
   completions: ItemCompletion[],
   overrides: ScheduleOverride[],
-): number {
+): Map<string, DayOutcome> {
   const completed = new Set(
     completions.filter((row) => row.completed).map((row) => `${row.date}:${row.item_id}`),
   );
   const planById = new Map(plans.map((plan) => [plan.id, plan]));
-  let failures = 0;
+  const outcomes = new Map<string, DayOutcome>();
 
-  // Today is still in progress, so only completed calendar days can fail.
-  for (let offset = 0; offset < daysInclusive(periodStart, today) - 1; offset += 1) {
+  for (let offset = 0; offset < daysInclusive(periodStart, today); offset += 1) {
     const date = addDays(periodStart, offset);
+    const outcome = { scheduled: 0, completed: 0 };
     for (const item of items) {
       const plan = planById.get(item.plan_id);
       if (
         plan &&
         planCountedOnDate(plan, date) &&
-        itemScheduledOnDateWithOverrides(item, date, overrides) &&
-        !completed.has(`${date}:${item.id}`)
-      ) failures += 1;
+        scheduledOnHistoricalDate(item, date, overrides)
+      ) {
+        outcome.scheduled += 1;
+        if (completed.has(`${date}:${item.id}`)) outcome.completed += 1;
+      }
     }
+    outcomes.set(date, outcome);
   }
-  return failures;
+  return outcomes;
 }
 
 async function getNeonUsage(env: RuntimeEnv, today: string): Promise<AnalyticsPayload["neon"]> {
@@ -162,13 +183,18 @@ export async function getAnalytics(
     repository.listScheduleOverridesInRange(periodStart, today),
   ]);
   const completed = activity.daily.reduce((total, day) => total + day.completions, 0);
-  const { current, best } = streaks(activity.daily);
+  const outcomes = dailyOutcomes(periodStart, today, plans, items, completions, overrides);
+  const { current, best } = streaks(activity.daily, outcomes);
+  const failures = activity.daily.slice(0, -1).reduce((total, day) => {
+    const outcome = outcomes.get(day.date);
+    return total + (outcome ? outcome.scheduled - outcome.completed : 0);
+  }, 0);
   return {
     period_days: 30,
     period_start: periodStart,
     period_end: today,
     completed,
-    failures: countFailures(periodStart, today, plans, items, completions, overrides),
+    failures,
     task_completions: activity.daily.reduce((total, day) => total + day.tasks, 0),
     habit_completions: activity.daily.reduce((total, day) => total + day.habits, 0),
     active_days: activity.daily.filter((day) => day.completions > 0).length,

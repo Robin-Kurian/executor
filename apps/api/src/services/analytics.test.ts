@@ -46,6 +46,9 @@ function repository() {
     listCompletionsInRange: async () => [{
       id: "completion-1", item_id: habit.id, date: "2026-10-09", completed: true, value: null, note: "",
       created_at: "2026-10-09T00:00:00.000Z", updated_at: "2026-10-09T00:00:00.000Z",
+    }, {
+      id: "completion-2", item_id: habit.id, date: "2026-10-10", completed: true, value: null, note: "",
+      created_at: "2026-10-10T00:00:00.000Z", updated_at: "2026-10-10T00:00:00.000Z",
     }],
     listScheduleOverridesInRange: async () => [],
   };
@@ -59,7 +62,7 @@ describe("analytics", () => {
       period_start: "2026-09-12",
       period_end: "2026-10-11",
       completed: 3,
-      failures: 1,
+      failures: 0,
       task_completions: 1,
       habit_completions: 2,
       active_days: 2,
@@ -69,6 +72,16 @@ describe("analytics", () => {
       open_items: 4,
       neon: { status: "not_configured", used_cu_hours: null, limit_cu_hours: 100 },
     });
+  });
+
+  it("breaks the streak when any scheduled item was not completed", async () => {
+    const secondHabit = { ...habit, id: "habit-2", title: "Read", start_date: "2026-10-10" };
+    const result = await getAnalytics({
+      ...repository(),
+      listTrackableItems: async () => [habit, secondHabit],
+    }, env, "2026-10-11");
+
+    expect(result).toMatchObject({ failures: 1, current_streak: 0, best_streak: 1 });
   });
 
   it("converts Neon's CU-seconds to CU-hours", async () => {
