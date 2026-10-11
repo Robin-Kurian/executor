@@ -85,10 +85,14 @@ export function ItemCheckbox({
   checked,
   onToggle,
   label,
+  tone = "default",
+  disabled = false,
 }: {
   checked: boolean;
   onToggle: () => void;
   label: string;
+  tone?: "default" | "warning";
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -97,11 +101,15 @@ export function ItemCheckbox({
       aria-checked={checked}
       aria-label={label}
       onClick={onToggle}
+      disabled={disabled}
       className={cn(
         "mt-0.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-accent]/60",
+        "disabled:cursor-default",
         checked
-          ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-bg)]"
+          ? tone === "warning"
+            ? "border-amber-400 bg-amber-400 text-amber-950"
+            : "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-bg)]"
           : "border-[var(--color-text-muted)] bg-transparent hover:border-[var(--color-accent)]",
       )}
     >

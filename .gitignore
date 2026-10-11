@@ -5,8 +5,7 @@ node_modules/
 dist/
 coverage/
 .wrangler/
-apps/api/wrangler.production.private.jsonc
-apps/web/wrangler.production.private.jsonc
+**/wrangler*.private.*
 
 # Local environment and credentials
 .dev.vars
@@ -32,12 +31,22 @@ yarn-debug.log*
 pnpm-debug.log*
 *.pem
 *.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+**/google-services.json
+**/GoogleService-Info.plist
+**/*service-account*.json
 
 # OS and generated TypeScript files
 .DS_Store
 *.tsbuildinfo
 worker-configuration.d.ts
-backups/*.dump
+backups/*
+!backups/.gitkeep
 
 # Expo prebuild output accidentally generated from the monorepo root
 /android/

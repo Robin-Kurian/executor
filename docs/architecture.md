@@ -28,6 +28,14 @@ The `user.role` column is constrained to `member` or `admin`. Every `/api/v1/*` 
 
 The browser sends its standards-based `PushSubscription` to authenticated `/api/v1/push/*` routes. `PushSubscriptionService` enforces ownership, `PushRepository` isolates persistence, and `WebPushTransport` isolates VAPID delivery. The private VAPID key exists only in API runtime secrets. One user can retain multiple device/browser subscriptions; 404/410 push endpoints are removed after delivery attempts.
 
+## Analytics
+
+Analytics covers 30 civil dates. Completion totals count successful item occurrences. Failures are scheduled habits, metrics, and tasks that remain incomplete on finished dates; the current date is not failed while it is still in progress. Daily streak qualification uses the same recurrence and occurrence-override rules and requires every scheduled habit, metric, and task to be complete. Empty days do not extend a streak. Plans/items, completion history, and schedule overrides remain server-side; only aggregate analytics are returned to the browser.
+
+## Configuration boundaries
+
+Browser-visible `NEXT_PUBLIC_*` values, web/API origins, Expo/Firebase project identifiers, and package/bundle IDs are public configuration. PostgreSQL URLs, Better Auth/bootstrap secrets, VAPID private material, provider tokens, signing files, private Wrangler configs, and backups must remain outside Git. The tracked example files contain placeholders only; production deployment scripts require ignored `wrangler.production.private.jsonc` files.
+
 ## Preserved behavior
 
 The extraction preserves plan visibility, inclusive bounds, all recurrence kinds, Inbox/waiting behavior, over-target quantities, task status synchronization, and the existing non-recurring `done` hydration behavior.

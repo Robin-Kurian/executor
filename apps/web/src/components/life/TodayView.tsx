@@ -101,6 +101,8 @@ function ItemRow({
           checked={item.completed}
           onToggle={() => onToggle(item, date)}
           label={`Mark ${item.title} ${item.completed ? "incomplete" : "complete"}`}
+          tone={completedLate > 0 ? "warning" : "default"}
+          disabled={completedLate > 0 && item.completion_date !== date}
         />
       )}
       <div className="min-w-0 flex-1">

@@ -36,7 +36,7 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
     repo.listPlans(false),
     repo.listActivePlanItems(),
     repo.listCompletionsInRange(missedLookbackStart, date),
-    includeMissed ? repo.listLatestCompletedCompletionsThrough(date) : Promise.resolve([]),
+    repo.listLatestCompletedCompletionsThrough(actualDate),
     repo.listScheduleOverridesInRange(missedLookbackStart, date),
   ]);
   const completionByDateAndItem = new Map(completions.map((row) => [`${row.date}:${row.item_id}`, row]));
@@ -65,6 +65,13 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
     const plan = plansById.get(item.plan_id); if (!plan) continue;
     const group = groups.get(plan.id); if (!group) continue;
     const currentCompletion = completionFor(item.id, date);
+    const latestItemCompletion = latestCompletionByItem.get(item.id);
+    const scheduledDate = item.due_date ?? item.start_date;
+    const lateCompletion = item.type === "task" && item.recurrence === "none" && scheduledDate === date &&
+      latestItemCompletion?.completed && latestItemCompletion.date > date
+      ? latestItemCompletion
+      : undefined;
+    const displayedCompletion = currentCompletion ?? lateCompletion;
     let missedDate: string | null = null;
     let consecutiveMisses = 0;
     const recurrenceHasEnded = Boolean(item.end_date && date > item.end_date);
@@ -89,10 +96,10 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
         is_stale: habitIsStale,
       });
     }
-    const next = toTodayItem(item, currentCompletion, date);
+    const next = toTodayItem(item, displayedCompletion, date);
     if (itemIsWaiting(item)) { if (itemIsWaitingOnDate(item, date)) waiting.push(next); continue; }
     if (itemIsOverdueOnDate(item, date)) { overdue.push(next); continue; }
-    if (!itemScheduledOnDateWithOverrides(item, date, scheduleOverrides) && !currentCompletion?.completed) continue;
+    if (!itemScheduledOnDateWithOverrides(item, date, scheduleOverrides) && !displayedCompletion?.completed) continue;
     if (item.type === "habit" || item.type === "metric" || item.recurrence !== "none") group.habits.push(next); else group.tasks.push(next);
   }
   const visible: TodayPlanGroup[] = [];

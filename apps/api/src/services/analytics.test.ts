@@ -50,6 +50,10 @@ function repository() {
       id: "completion-2", item_id: habit.id, date: "2026-10-10", completed: true, value: null, note: "",
       created_at: "2026-10-10T00:00:00.000Z", updated_at: "2026-10-10T00:00:00.000Z",
     }],
+    listLatestCompletedCompletionsThrough: async () => [{
+      id: "completion-2", item_id: habit.id, date: "2026-10-10", completed: true, value: null, note: "",
+      created_at: "2026-10-10T00:00:00.000Z", updated_at: "2026-10-10T00:00:00.000Z",
+    }],
     listScheduleOverridesInRange: async () => [],
   };
 }
@@ -82,6 +86,29 @@ describe("analytics", () => {
     }, env, "2026-10-11");
 
     expect(result).toMatchObject({ failures: 1, current_streak: 0, best_streak: 1 });
+  });
+
+  it("resolves a one-time task failure when the task is completed late without restoring the streak", async () => {
+    const invoice = {
+      ...habit,
+      id: "task-1",
+      type: "task" as const,
+      status: "done" as const,
+      recurrence: "none" as const,
+      due_date: "2026-10-10",
+    };
+    const lateCompletion = {
+      id: "completion-late", item_id: invoice.id, date: "2026-10-11", completed: true, value: null, note: "",
+      created_at: "2026-10-11T00:00:00.000Z", updated_at: "2026-10-11T00:00:00.000Z",
+    };
+    const result = await getAnalytics({
+      ...repository(),
+      listTrackableItems: async () => [invoice],
+      listCompletionsInRange: async () => [lateCompletion],
+      listLatestCompletedCompletionsThrough: async () => [lateCompletion],
+    }, env, "2026-10-11");
+
+    expect(result).toMatchObject({ completed: 3, failures: 0, current_streak: 0, best_streak: 0 });
   });
 
   it("converts Neon's CU-seconds to CU-hours", async () => {

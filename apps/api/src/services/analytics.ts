@@ -12,6 +12,7 @@ type AnalyticsRepository = {
   listPlans(includeArchived: boolean): Promise<Plan[]>;
   listTrackableItems(): Promise<PlanItem[]>;
   listCompletionsInRange(from: string, to: string): Promise<ItemCompletion[]>;
+  listLatestCompletedCompletionsThrough(to: string): Promise<ItemCompletion[]>;
   listScheduleOverridesInRange(from: string, to: string): Promise<ScheduleOverride[]>;
 };
 
@@ -33,12 +34,12 @@ type NeonProjectResponse = {
   };
 };
 
-type DayOutcome = { scheduled: number; completed: number };
+type DayOutcome = { scheduled: number; onTime: number; resolved: number };
 
 function streaks(daily: AnalyticsPayload["daily"], outcomes: Map<string, DayOutcome>) {
   const isComplete = (date: string) => {
     const outcome = outcomes.get(date);
-    return Boolean(outcome && outcome.scheduled > 0 && outcome.completed === outcome.scheduled);
+    return Boolean(outcome && outcome.scheduled > 0 && outcome.onTime === outcome.scheduled);
   };
   let best = 0;
   let running = 0;
@@ -80,17 +81,19 @@ function dailyOutcomes(
   plans: Plan[],
   items: PlanItem[],
   completions: ItemCompletion[],
+  latestCompleted: ItemCompletion[],
   overrides: ScheduleOverride[],
 ): Map<string, DayOutcome> {
   const completed = new Set(
     completions.filter((row) => row.completed).map((row) => `${row.date}:${row.item_id}`),
   );
+  const latestCompletedByItem = new Map(latestCompleted.map((row) => [row.item_id, row]));
   const planById = new Map(plans.map((plan) => [plan.id, plan]));
   const outcomes = new Map<string, DayOutcome>();
 
   for (let offset = 0; offset < daysInclusive(periodStart, today); offset += 1) {
     const date = addDays(periodStart, offset);
-    const outcome = { scheduled: 0, completed: 0 };
+    const outcome = { scheduled: 0, onTime: 0, resolved: 0 };
     for (const item of items) {
       const plan = planById.get(item.plan_id);
       if (
@@ -99,7 +102,12 @@ function dailyOutcomes(
         scheduledOnHistoricalDate(item, date, overrides)
       ) {
         outcome.scheduled += 1;
-        if (completed.has(`${date}:${item.id}`)) outcome.completed += 1;
+        const completedOnDate = completed.has(`${date}:${item.id}`);
+        const oneTimeCompletion = item.type === "task" && item.recurrence === "none"
+          ? latestCompletedByItem.get(item.id)
+          : undefined;
+        if (completedOnDate || oneTimeCompletion) outcome.resolved += 1;
+        if (completedOnDate || (oneTimeCompletion && oneTimeCompletion.date <= date)) outcome.onTime += 1;
       }
     }
     outcomes.set(date, outcome);
@@ -174,20 +182,21 @@ export async function getAnalytics(
   today: string,
 ): Promise<AnalyticsPayload> {
   const periodStart = addDays(today, -29);
-  const [activity, neon, plans, items, completions, overrides] = await Promise.all([
+  const [activity, neon, plans, items, completions, latestCompleted, overrides] = await Promise.all([
     repository.getAnalytics(periodStart, today),
     getNeonUsage(env, today),
     repository.listPlans(true),
     repository.listTrackableItems(),
     repository.listCompletionsInRange(periodStart, today),
+    repository.listLatestCompletedCompletionsThrough(today),
     repository.listScheduleOverridesInRange(periodStart, today),
   ]);
   const completed = activity.daily.reduce((total, day) => total + day.completions, 0);
-  const outcomes = dailyOutcomes(periodStart, today, plans, items, completions, overrides);
+  const outcomes = dailyOutcomes(periodStart, today, plans, items, completions, latestCompleted, overrides);
   const { current, best } = streaks(activity.daily, outcomes);
   const failures = activity.daily.slice(0, -1).reduce((total, day) => {
     const outcome = outcomes.get(day.date);
-    return total + (outcome ? outcome.scheduled - outcome.completed : 0);
+    return total + (outcome ? outcome.scheduled - outcome.resolved : 0);
   }, 0);
   return {
     period_days: 30,

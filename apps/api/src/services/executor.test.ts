@@ -176,17 +176,18 @@ describe("getToday completed overdue tasks", () => {
     ]);
   });
 
-  it("does not mark the original due date complete from task status alone", async () => {
+  it("shows a late completion on the original due date", async () => {
+    const checkedLate = { ...completion("overdue-task", true), date: "2026-10-06" };
     const result = await getToday({
       listPlans: async () => [plan],
       listActivePlanItems: async () => [task()],
       listCompletionsInRange: async () => [],
-      listLatestCompletedCompletionsThrough: async () => [],
+      listLatestCompletedCompletionsThrough: async () => [checkedLate],
       listScheduleOverridesInRange: async () => [],
-    }, "2026-10-05");
+    }, "2026-10-05", "2026-10-06");
 
     expect(result.plans[0]?.tasks).toMatchObject([
-      { id: "overdue-task", completed: false },
+      { id: "overdue-task", completed: true, completion_date: "2026-10-06" },
     ]);
   });
 });

@@ -6,7 +6,7 @@ Run these commands from the repository root unless a step says otherwise. An AI 
 
 1. Install Node 20.9+ and run `npm install`.
 2. Create an empty PostgreSQL database (the current adapter is Neon-compatible) and save its HTTPS/PostgreSQL connection URL.
-3. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars`. Set `DATABASE_URL`, `ALLOWED_ADMIN_EMAIL`, and 32+-character `BETTER_AUTH_SECRET` and `ADMIN_BOOTSTRAP_TOKEN` values. Generate VAPID keys with `npx web-push generate-vapid-keys`, fill all three `VAPID_*` values, and use `mailto:operator@example.com` for `VAPID_SUBJECT`.
+3. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars`. Replace every placeholder. Set `DATABASE_URL`, `FALLBACK_DATABASE_URL` if backup recovery is needed, `ALLOWED_ADMIN_EMAIL`, and unique 32+-character `BETTER_AUTH_SECRET` and `ADMIN_BOOTSTRAP_TOKEN` values. Generate VAPID keys with `npx web-push generate-vapid-keys`, fill all three `VAPID_*` values, and use an operator-controlled `mailto:` or HTTPS URL for `VAPID_SUBJECT`. The four `NEON_*` settings are optional and only enable the compute-usage card.
 4. Run `npm run db:migrate`. This creates the schema in the database named by local `.dev.vars`.
 5. Copy both production examples to their ignored private counterparts:
 
@@ -16,7 +16,7 @@ Run these commands from the repository root unless a step says otherwise. An AI 
    ```
 
 6. In the API private config, set a unique Worker `name`, `WEB_ORIGIN`, `BETTER_AUTH_URL`, `ALLOWED_ADMIN_EMAIL`, and a domain route the operator controls. In the web private config, set its unique Worker `name`, domain route, service name, and `NEXT_PUBLIC_API_URL` to the API's exact HTTPS URL. Configure the corresponding custom domains/DNS in Cloudflare before deploying. The web origin and `WEB_ORIGIN` must match exactly.
-7. From `apps/api`, sign in with `npx wrangler whoami`, set the six Worker secrets below, then return to the repository root and run `npm run api:deploy` followed by `npm run web:deploy`.
+7. From `apps/api`, sign in with `npx wrangler whoami`, set the six required Worker secrets below, then optionally set the four Neon analytics values. Return to the repository root and run `npm run api:deploy` followed by `npm run web:deploy`.
 
 The values belong in these places only: local database and API settings in `apps/api/.dev.vars`; local browser API URL in `apps/web/.env.local`; production API secrets in Wrangler secrets; deployable public origins/routes in the ignored production-private config files. Do not put secrets in tracked files, command arguments, or Git.
 
@@ -48,6 +48,18 @@ For each app, copy its `wrangler.production.example.jsonc` to `wrangler.producti
 
 The web origin and API origin must use HTTPS in production. `WEB_ORIGIN` must exactly match the web origin because authenticated API requests use credentialed CORS.
 
+### Fork customization checklist
+
+A clone is not ready to publish under a new owner until these instance-specific values are replaced:
+
+- API/web Worker names, Cloudflare account, custom domains, routes, public origins, and administrator email.
+- PostgreSQL databases, Better Auth secret, bootstrap token, VAPID key pair/subject, and optional Neon analytics identifiers.
+- `apps/mobile/app.json` branding, `extra.eas.projectId`, Android package, and iOS bundle identifier. Run `npx eas-cli@latest init` while signed into the new operator's Expo account and do not reuse the upstream EAS project.
+- The new operator's Firebase Android app and ignored `google-services.json`, plus EAS `GOOGLE_SERVICES_JSON` secret-file settings for every build profile.
+- Icons, product name, company name, store metadata, signing certificates, and notification credentials.
+
+Expo/Firebase project IDs, mobile app IDs, package names, domains, and `NEXT_PUBLIC_*` values are public identifiers, not authentication secrets. They still identify an operator's infrastructure and must be replaced in a fork. Database URLs, private keys, access tokens, auth/bootstrap secrets, signing files, and backup contents are confidential.
+
 ## Access-control setup
 
 This application is intentionally configured as a single-admin deployment. An AI or operator must treat the following values as security-sensitive configuration:
@@ -78,10 +90,16 @@ Then run `npm run api:deploy`. The command refuses to run without `wrangler.prod
 
 The current adapter uses Neon’s serverless HTTP driver. It is isolated from domain behavior, so another PostgreSQL provider can be adopted by changing the adapter and validating repository behavior.
 
-After deployment, create the only permitted account by pointing the local bootstrap command at the production API and web origin, then verify login. `OWNER_EMAIL` must match `ALLOWED_ADMIN_EMAIL`; keep the password and bootstrap token out of source control and shell history where possible:
+After deployment, create the only permitted account by pointing the local bootstrap command at the production API, production database, and web origin, then verify login. `OWNER_EMAIL` must match `ALLOWED_ADMIN_EMAIL`. Prompt for confidential values so they do not appear in the command or shell history (run this on a trusted, single-user machine):
 
 ```bash
-OWNER_EMAIL=admin@example.com OWNER_PASSWORD='choose-a-strong-password' OWNER_NAME='Your Name' BETTER_AUTH_URL=https://your-api.example.com WEB_ORIGIN=https://your-web.example.com npm run auth:bootstrap-owner -w @executor/api
+printf 'Owner email: '; read -r OWNER_EMAIL
+printf 'Owner password: '; read -rs OWNER_PASSWORD; printf '\n'
+printf 'Production database URL: '; read -rs DATABASE_URL; printf '\n'
+printf 'Production bootstrap token: '; read -rs ADMIN_BOOTSTRAP_TOKEN; printf '\n'
+export OWNER_EMAIL OWNER_PASSWORD DATABASE_URL ADMIN_BOOTSTRAP_TOKEN
+OWNER_NAME='Executor Owner' BETTER_AUTH_URL=https://your-api.example.com WEB_ORIGIN=https://your-web.example.com npm run auth:bootstrap-owner -w @executor/api
+unset OWNER_EMAIL OWNER_PASSWORD DATABASE_URL ADMIN_BOOTSTRAP_TOKEN
 ```
 
 Verify the deployed API after every authorization change: `/health` must return `200`; a sign-up attempt without `x-executor-bootstrap-token` must return `403`; and the configured administrator must be able to sign in and use a read/write API flow. Do not test by attempting a real unauthorized account creation.
@@ -103,7 +121,7 @@ A push does not deploy this repository by itself. If you add GitHub Actions or a
 
 Generate VAPID keys once with `npx web-push generate-vapid-keys`. Keep the private key out of Git, place the three `VAPID_*` values in `apps/api/.dev.vars` locally, and use Wrangler secrets in production. Apply `npm run db:migrate` before deploying the push API. A signed-in user can enable or disable the current device and invoke `/api/v1/push/test` from the notification settings UI.
 
-Item reminders run every 10 minutes (`*/10 * * * *`) so a quiet Neon database can scale to zero. A timed reminder can therefore arrive up to about 10 minutes late. The Worker sends an agenda at **08:00 Asia/Kolkata** (`30 2 * * *` UTC) and an evening check-in at **19:00 Asia/Kolkata** (`30 13 * * *` UTC). Each per-user reminder or daily run is claimed in `push_notification_runs` before delivery so Cloudflare’s at-least-once cron execution cannot duplicate a notification. Reminder timestamps are stored in UTC after the browser converts the user’s local `datetime-local` value.
+Item reminders run hourly (`0 * * * *`) so a quiet Neon database can scale to zero. A timed reminder can therefore arrive up to about one hour late. The Worker sends an agenda at **08:00 Asia/Kolkata** (`30 2 * * *` UTC) and an evening check-in at **19:00 Asia/Kolkata** (`30 13 * * *` UTC). Each per-user reminder or daily run is claimed in `push_notification_runs` before delivery so Cloudflare’s at-least-once cron execution cannot duplicate a notification. Reminder timestamps are stored in UTC after the browser converts the user’s local `datetime-local` value.
 
 If a browser retains an outdated service worker after an upgrade, clear the site’s stored data and service workers once, then reload and install again. Normally the versioned cache and `updateViaCache: "none"` update automatically.
 
@@ -119,7 +137,7 @@ Brave on desktop and Android may require **Settings → Privacy and security →
 4. Apply the API migration with `npm run db:migrate`; it adds the `expo_push_tokens` table used by native reminders.
 5. Run `npm run android -w @executor/mobile` to open the connected Android device. A physical device needs a development build for reliable remote notifications; Expo Go is not a notification test target.
 
-The Expo project ID is already linked in `apps/mobile/app.json`. The native app registers its Expo token after the user signs in to the existing PWA, and all existing morning, evening, timed, and test notifications are sent to both web and native registrations. Notification taps open the route included with the reminder.
+The checked-in Expo project ID identifies the upstream app but does not grant access to it. Forks must link their own EAS project and replace the package/bundle identifiers before building. The native app registers its Expo token after the user signs in to the existing PWA, and all existing morning, evening, timed, and test notifications are sent to both web and native registrations. Notification taps open the route included with the reminder.
 
 If a Firebase API key is exposed, rotate it in Google Cloud, download a fresh `google-services.json`, replace the ignored local file and every `GOOGLE_SERVICES_JSON` EAS file variable, verify all build profiles, and only then delete the old key. Removing the file from Git does not revoke a key that has already been published.
 
@@ -127,7 +145,7 @@ If a Firebase API key is exposed, rotate it in Google Cloud, download a fresh `g
 
 Install PostgreSQL client tools (`pg_dump` and `pg_restore`) and set both `DATABASE_URL` and `FALLBACK_DATABASE_URL` in the ignored `apps/api/.dev.vars`. Create a local custom-format dump with `npm run db:backup`. Dumps are timestamped in `backups/` and ignored by Git. Restore the newest dump with `npm run db:restore:fallback`, or restore a specific file with `npm run db:restore:fallback -- backups/executor-YYYYMMDDTHHMMSSZ.dump`. Restore asks for the word `RESTORE`; trusted non-interactive recovery can append `--yes`. The restore script refuses to run if source and fallback URLs are identical. These commands pass database credentials through the subprocess environment rather than command arguments, but backup files still contain all application and authentication data and must be stored securely.
 
-The `/analytics` screen queries task activity with one aggregate SQL request. Its Neon card is fetched only when that screen is opened. To enable it locally, set `NEON_API_KEY`, `NEON_ORG_ID`, and `NEON_PROJECT_ID` in `.dev.vars`; set `NEON_CU_LIMIT_CU_HOURS` to `100` (or your actual allowance). For production, set all four as Worker secrets so the same tracked configuration safely supports the optional integration:
+The `/analytics` screen loads aggregate completions plus plans, scheduled items, overrides, and completion history for the last 30 civil dates. A completion is one finished item occurrence. A failure is an incomplete scheduled habit, metric, or task on a finished day; today is excluded from failures while it is still in progress. A streak day requires every scheduled habit, metric, and task to be complete, and a day with no scheduled items does not extend the streak. The Neon card is fetched only when that screen is opened. To enable it locally, set `NEON_API_KEY`, `NEON_ORG_ID`, and `NEON_PROJECT_ID` in `.dev.vars`; set `NEON_CU_LIMIT_CU_HOURS` to `100` (or your actual allowance). For production, set all four as Worker secrets so the same tracked configuration safely supports the optional integration:
 
 ```bash
 npx wrangler secret put NEON_API_KEY --config wrangler.production.private.jsonc
@@ -139,3 +157,9 @@ npx wrangler secret put NEON_CU_LIMIT_CU_HOURS --config wrangler.production.priv
 Neon's project consumption endpoint does not wake a suspended compute. Consumption history is plan-dependent; the card reports an unavailable state instead of failing the rest of analytics when Neon returns an error.
 
 To rotate a database credential, update the local `DATABASE_URL`, then run `npm run update-connection` from the repository root and paste the new value only at the prompt. The command updates the production Worker secret; it does not read or upload `.dev.vars`. Deploy with `npm run api:deploy` afterward if you also changed code or configuration. Rotate `BETTER_AUTH_SECRET` only with an intentional session invalidation plan. Rotate `ADMIN_BOOTSTRAP_TOKEN` after initial provisioning or whenever its confidentiality is uncertain, then update both the local secret and Cloudflare Worker secret before the next bootstrap attempt. Remove temporary bootstrap credentials from shell history and secret stores.
+
+## Public-repository safety
+
+Before every push, inspect `git status --short` and verify private paths with `git check-ignore -v`, especially `.dev.vars`, `.env*`, `wrangler*.private.*`, `google-services.json`, signing material, and `backups/`. An ignore rule does not protect a file that was already committed; check suspicious paths with `git ls-files <path>`.
+
+Enable GitHub secret scanning and push protection for the public repository. Treat any credential that reaches a commit as compromised: rotate or revoke it first, then remove it from the current tree and consider a coordinated history rewrite. Deleting it in a later commit is not sufficient because older Git objects remain downloadable. Database dumps contain application and authentication data and require the same care as production credentials.
