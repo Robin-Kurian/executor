@@ -178,10 +178,11 @@ describe("getToday completed overdue tasks", () => {
 
   it("shows a late completion on the original due date", async () => {
     const checkedLate = { ...completion("overdue-task", true), date: "2026-10-06" };
+    const uncheckedOnDueDate = completion("overdue-task", false, "2026-10-05");
     const result = await getToday({
       listPlans: async () => [plan],
       listActivePlanItems: async () => [task()],
-      listCompletionsInRange: async () => [],
+      listCompletionsInRange: async () => [uncheckedOnDueDate],
       listLatestCompletedCompletionsThrough: async () => [checkedLate],
       listScheduleOverridesInRange: async () => [],
     }, "2026-10-05", "2026-10-06");

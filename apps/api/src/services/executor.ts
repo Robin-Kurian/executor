@@ -71,7 +71,9 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
       latestItemCompletion?.completed && latestItemCompletion.date > date
       ? latestItemCompletion
       : undefined;
-    const displayedCompletion = currentCompletion ?? lateCompletion;
+    const displayedCompletion = currentCompletion?.completed
+      ? currentCompletion
+      : lateCompletion ?? currentCompletion;
     let missedDate: string | null = null;
     let consecutiveMisses = 0;
     const recurrenceHasEnded = Boolean(item.end_date && date > item.end_date);

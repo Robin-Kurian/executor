@@ -1,5 +1,59 @@
 # Deployment
 
+## Choose a deployment mode
+
+Executor supports three practical operating modes. In every mode, use a database and credentials owned by the operator; never reuse another installation's configuration.
+
+### Localhost only
+
+Use the standard [local setup](#local-development), keep the default loopback URLs, and open `http://localhost:3000` on the same computer. No inbound firewall rule, port-forwarding rule, public DNS record, Cloudflare account, or Tailscale account is required.
+
+This is suitable for private desktop use and development. The computer, PostgreSQL database, web process, and API process must be running while the app is in use. Cloudflare cron triggers do not run under an ordinary local development process, so automatic morning/evening notifications and timed reminder delivery require a deployed API or another deliberately managed scheduler.
+
+### Private access with Tailscale
+
+[Tailscale Serve](https://tailscale.com/docs/reference/tailscale-cli/serve) can provide tailnet-only HTTPS without opening router ports. Tailscale Funnel is different: it exposes a service to the public internet. Do not use Funnel for a private Executor installation.
+
+Install Tailscale on the host and each client device, enable MagicDNS and HTTPS for the tailnet, and choose which users/devices can reach the host with Tailscale grants or ACLs. Keep Executor listening on loopback; Tailscale Serve should be the only network-facing proxy.
+
+Use the HTTPS device name printed by `tailscale serve` in the following configuration. For a device named `executor-host` in `example.ts.net`, the values would be:
+
+```dotenv
+# apps/api/.dev.vars
+APP_ENV=production
+WEB_ORIGIN=https://executor-host.example.ts.net
+BETTER_AUTH_URL=https://executor-host.example.ts.net:8443
+```
+
+```dotenv
+# apps/web/.env.local
+NEXT_PUBLIC_API_URL=https://executor-host.example.ts.net:8443
+NEXT_ALLOWED_DEV_ORIGIN=executor-host.example.ts.net
+```
+
+Restart `npm run dev` after changing these values, then proxy the web and API loopback ports separately:
+
+```bash
+tailscale serve --bg --https=443 http://127.0.0.1:3000
+tailscale serve --bg --https=8443 http://127.0.0.1:8787
+tailscale serve status
+```
+
+Open the HTTPS web URL from another approved tailnet device, verify `https://executor-host.example.ts.net:8443/health`, then test login and a read/write flow. Port `8443` is intentionally part of `BETTER_AUTH_URL` and `NEXT_PUBLIC_API_URL`; `WEB_ORIGIN` is the exact browser origin without that API port. `NEXT_ALLOWED_DEV_ORIGIN` contains only the hostname and allows that private hostname to request Next.js development assets. `APP_ENV=production` makes authentication cookies secure because the browser-facing connection is HTTPS even though Serve proxies to local HTTP.
+
+To stop sharing these endpoints within the tailnet:
+
+```bash
+tailscale serve --https=443 off
+tailscale serve --https=8443 off
+```
+
+Tailscale access is an additional network boundary, not a replacement for Executor authentication. Keep the administrator password and all local secrets protected, restrict tailnet membership, and review `tailscale serve status` after configuration changes. Scheduled-notification limitations are the same as localhost-only use unless the API is separately deployed with a scheduler.
+
+### Public self-hosting
+
+Use the Cloudflare procedure below when Executor must be continuously available without depending on a personal computer, or when automatic Worker cron notifications are required. Public deployment still requires Executor authentication; do not weaken the allowlist, bootstrap token, or administrator-role checks.
+
 ## Deploy your own instance
 
 Run these commands from the repository root unless a step says otherwise. An AI following this guide should use only its operator's accounts, domains, and credentials; never reuse values from another Executor instance.

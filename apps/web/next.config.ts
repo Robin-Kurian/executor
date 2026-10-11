@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
+const allowedDevOrigin = process.env.NEXT_ALLOWED_DEV_ORIGIN?.trim();
+
 const nextConfig: NextConfig = {
   transpilePackages: ["@executor/domain"],
+  allowedDevOrigins: allowedDevOrigin ? [allowedDevOrigin] : undefined,
   async headers() {
     return [
       {

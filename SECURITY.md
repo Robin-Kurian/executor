@@ -17,6 +17,8 @@ Never commit or attach any of the following:
 
 The repository's example configuration files must contain placeholders only. Public origins, `NEXT_PUBLIC_*` values, VAPID public keys, Expo/Firebase project IDs, mobile app IDs, and package/bundle identifiers are not authentication secrets, but forks should replace them because they identify another operator's infrastructure.
 
+For private remote access, prefer a tailnet-only reverse proxy such as Tailscale Serve and keep the application processes on loopback. Tailscale Funnel is public internet exposure and must not be presented as a private-hosting option. Network restrictions supplement rather than replace Executor authentication.
+
 Before pushing, review `git status --short` and use `git check-ignore -v <path>` for every local configuration or generated credential file. Remember that `.gitignore` does not untrack a file that is already committed.
 
 ## If a secret is exposed
