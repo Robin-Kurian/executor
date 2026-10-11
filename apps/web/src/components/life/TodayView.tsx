@@ -223,6 +223,10 @@ export function TodayView() {
     });
     try {
       await lifeApi.complete(item.id, { date: occurrenceDate, ...patch });
+      // The pre-save invalidation protects navigation during the optimistic
+      // update. Refresh again after confirmation so analytics cannot retain a
+      // response that raced with this write.
+      bump();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save");
       bump();
