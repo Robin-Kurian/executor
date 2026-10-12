@@ -283,6 +283,7 @@ export class ExecutorRepository {
   }
 
   async listCompletionsForDate(date: string, itemIds?: string[]): Promise<ItemCompletion[]> {
+    if (itemIds && itemIds.length === 0) return [];
     const where = itemIds?.length ? and(eq(itemCompletions.date, date), inArray(itemCompletions.item_id, itemIds)) : eq(itemCompletions.date, date);
     return (await this.db.select().from(itemCompletions).where(where)).map(mapCompletion);
   }
@@ -290,6 +291,7 @@ export class ExecutorRepository {
     return (await this.db.select().from(itemCompletions).where(and(gte(itemCompletions.date, from), lte(itemCompletions.date, to))).limit(4000)).map(mapCompletion);
   }
   async listLatestCompletedCompletionsThrough(to: string, itemIds?: string[]): Promise<ItemCompletion[]> {
+    if (itemIds && itemIds.length === 0) return [];
     const rows = await this.db.selectDistinctOn([itemCompletions.item_id]).from(itemCompletions)
       .where(and(
         eq(itemCompletions.completed, true),

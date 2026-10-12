@@ -41,9 +41,17 @@ v1.get("/plans/:id", zValidator("param", IdParamsSchema), zValidator("query", Pl
   const repository = repo(c); const plan = await repository.getPlan(c.req.valid("param").id); if (!plan) return notFound(c, "Plan");
   const date = c.req.valid("query").date ?? localToday(); const items = await repository.listItems(plan.id);
   const itemIds = items.map((item) => item.id);
+  const completedOneOffItemIds = items
+    .filter((item) => item.recurrence === "none" && item.status === "done")
+    .map((item) => item.id);
   const [completions, latestCompleted] = await Promise.all([
     repository.listCompletionsForDate(date, itemIds),
-    repository.listLatestCompletedCompletionsThrough(dateInTimeZone(Date.now(), "Asia/Kolkata"), itemIds),
+    completedOneOffItemIds.length
+      ? repository.listLatestCompletedCompletionsThrough(
+          dateInTimeZone(Date.now(), "Asia/Kolkata"),
+          completedOneOffItemIds,
+        )
+      : Promise.resolve([]),
   ]);
   const byItem = new Map(completions.map((completion) => [completion.item_id, completion]));
   const latestCompletedByItem = new Map(latestCompleted.map((completion) => [completion.item_id, completion]));
