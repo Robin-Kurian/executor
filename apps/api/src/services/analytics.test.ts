@@ -55,6 +55,7 @@ function repository() {
       created_at: "2026-10-10T00:00:00.000Z", updated_at: "2026-10-10T00:00:00.000Z",
     }],
     listScheduleOverridesInRange: async () => [],
+    listOccurrenceArchivesInRange: async () => [],
   };
 }
 
@@ -86,6 +87,20 @@ describe("analytics", () => {
     }, env, "2026-10-11");
 
     expect(result).toMatchObject({ failures: 1, current_streak: 0, best_streak: 1 });
+  });
+
+  it("does not count an archived occurrence as a success or failure", async () => {
+    const secondHabit = { ...habit, id: "habit-2", title: "Read", start_date: "2026-10-10" };
+    const result = await getAnalytics({
+      ...repository(),
+      listTrackableItems: async () => [habit, secondHabit],
+      listOccurrenceArchivesInRange: async () => [{
+        id: "archive-1", item_id: secondHabit.id, date: "2026-10-10",
+        created_at: "2026-10-10T00:00:00.000Z", updated_at: "2026-10-10T00:00:00.000Z",
+      }],
+    }, env, "2026-10-11");
+
+    expect(result).toMatchObject({ failures: 0, current_streak: 2, best_streak: 2 });
   });
 
   it("resolves a one-time task failure when the task is completed late without restoring the streak", async () => {

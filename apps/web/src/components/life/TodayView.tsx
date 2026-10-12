@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { CalendarX2, Clock3, History } from "lucide-react";
@@ -15,6 +15,7 @@ import { QuantityTracker } from "./QuantityTracker";
 import { OccurrenceMover } from "./OccurrenceMover";
 import { EmptyState, ItemCheckbox, LifeButton, MissedIndicator, ProgressIndicator } from "./ui";
 import { ListSkeleton } from "./LoadingSkeleton";
+import { SortableItemList } from "./SortableItemList";
 import { executorPaths } from "@/lib/paths";
 
 function applyItem(payload: TodayPayload, id: string, occurrenceDate: string, patch: Partial<TodayItem>): TodayPayload {
@@ -52,18 +53,22 @@ function ItemRow({
   onToggle,
   onProgress,
   onMoved,
+  onArchive,
   occurrenceLabel,
   showActions = true,
   readOnlyMissed = false,
+  actionTrailing,
 }: {
   item: TodayItem | MissedTodayItem;
   date: string;
   onToggle: (item: TodayItem, occurrenceDate: string) => void;
   onProgress: (item: TodayItem, value: number, occurrenceDate: string) => void;
   onMoved: () => void;
+  onArchive?: (item: TodayItem, occurrenceDate: string) => void;
   occurrenceLabel?: string;
   showActions?: boolean;
   readOnlyMissed?: boolean;
+  actionTrailing?: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [moving, setMoving] = useState(false);
@@ -131,7 +136,12 @@ function ItemRow({
             </button>
           )}
           {showActions && !readOnlyMissed && !item.completed ? (
-            <div className="flex shrink-0 gap-1 text-xs text-[--color-text-muted]">
+            <div className="flex shrink-0 items-center gap-1 text-xs text-[--color-text-muted]">
+              {onArchive ? (
+                <button type="button" onClick={() => onArchive(item, date)} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
+                  Archive
+                </button>
+              ) : null}
               {item.recurrence !== "none" && item.status !== "waiting" ? (
                 <button type="button" onClick={() => setMoving(true)} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
                   Move
@@ -141,11 +151,12 @@ function ItemRow({
                   Tomorrow
                 </button>
               )}
-              {item.status !== "waiting" ? (
+              {item.type === "task" && item.status !== "waiting" ? (
                 <button type="button" onClick={markWaiting} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
                   Wait
                 </button>
               ) : null}
+              {actionTrailing}
             </div>
           ) : null}
         </div>
@@ -243,11 +254,32 @@ export function TodayView() {
     await saveProgress(item, occurrenceDate, nextQuantityState(item, value));
   }
 
+  async function archiveOccurrence(item: TodayItem, occurrenceDate: string) {
+    try {
+      await lifeApi.archiveOccurrence(item.id, occurrenceDate);
+      toast.success("Archived for this day");
+      bump();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not archive");
+    }
+  }
+
+  async function unarchiveOccurrence(item: TodayItem) {
+    try {
+      await lifeApi.unarchiveOccurrence(item.id, date);
+      toast.success("Restored for this day");
+      bump();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not restore");
+    }
+  }
+
   const empty =
     data &&
     data.plans.length === 0 &&
     data.overdue.length === 0 &&
-    data.waiting.length === 0;
+    data.waiting.length === 0 &&
+    data.archived.length === 0;
 
   return (
     <div>
@@ -317,9 +349,23 @@ export function TodayView() {
         {data?.overdue.length ? (
           <section className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
             <h2 className="mb-1 text-sm font-medium text-red-300">Overdue</h2>
-            {data.overdue.map((item) => (
-              <ItemRow key={item.id} item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} />
-            ))}
+            <SortableItemList
+              items={data.overdue}
+              label="Overdue"
+              onSaved={bump}
+              handlePosition="inline"
+              renderItem={(item, _preview, dragHandle) => (
+                <ItemRow
+                  item={item}
+                  date={date}
+                  onToggle={toggle}
+                  onProgress={setProgress}
+                  onMoved={bump}
+                  onArchive={archiveOccurrence}
+                  actionTrailing={dragHandle}
+                />
+              )}
+            />
           </section>
         ) : null}
 
@@ -359,9 +405,14 @@ export function TodayView() {
                 <p className="text-[11px] uppercase tracking-[0.16em] text-[--color-text-muted]">
                   Habits
                 </p>
-                {plan.habits.map((item) => (
-                  <ItemRow key={item.id} item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} />
-                ))}
+                <SortableItemList
+                  items={plan.habits}
+                  label={`${plan.name} habits`}
+                  onSaved={bump}
+                  renderItem={(item) => (
+                    <ItemRow item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} onArchive={archiveOccurrence} />
+                  )}
+                />
               </div>
             ) : null}
             {plan.missed.some((missed) => !plan.habits.some((habit) => habit.id === missed.id && habit.completed)) ? (
@@ -389,9 +440,14 @@ export function TodayView() {
                 <p className="text-[11px] uppercase tracking-[0.16em] text-[--color-text-muted]">
                   Tasks
                 </p>
-                {plan.tasks.map((item) => (
-                  <ItemRow key={item.id} item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} />
-                ))}
+                <SortableItemList
+                  items={plan.tasks}
+                  label={`${plan.name} tasks`}
+                  onSaved={bump}
+                  renderItem={(item) => (
+                    <ItemRow item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} onArchive={archiveOccurrence} />
+                  )}
+                />
               </div>
             ) : null}
           </section>
@@ -400,10 +456,40 @@ export function TodayView() {
         {data?.waiting.length ? (
           <section className="apple-glass rounded-2xl border p-4">
             <h2 className="mb-1 text-sm font-medium text-[--color-text-muted]">Waiting</h2>
-            {data.waiting.map((item) => (
-              <ItemRow key={item.id} item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} />
-            ))}
+            <SortableItemList
+              items={data.waiting}
+              label="Waiting"
+              onSaved={bump}
+              renderItem={(item) => (
+                <ItemRow item={item} date={date} onToggle={toggle} onProgress={setProgress} onMoved={bump} onArchive={archiveOccurrence} />
+              )}
+            />
           </section>
+        ) : null}
+
+        {data?.archived.length ? (
+          <details className="apple-glass rounded-2xl border p-4">
+            <summary className="cursor-pointer text-sm font-medium text-[--color-text-muted]">
+              Archived for this day ({data.archived.length})
+            </summary>
+            <div className="mt-2 divide-y divide-[--color-border]">
+              {data.archived.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] text-[--color-text-primary]">{item.title}</p>
+                    <p className="text-xs text-[--color-text-muted]">{item.type}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => unarchiveOccurrence(item)}
+                    className="rounded-md px-1.5 py-1 text-xs text-[--color-text-muted] hover:bg-[--color-surface]"
+                  >
+                    Unarchive
+                  </button>
+                </div>
+              ))}
+            </div>
+          </details>
         ) : null}
       </div>
     </div>

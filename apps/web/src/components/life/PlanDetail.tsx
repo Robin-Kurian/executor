@@ -24,6 +24,7 @@ import {
   LifeField,
 } from "./ui";
 import { PlanSkeleton } from "./LoadingSkeleton";
+import { SortableItemList } from "./SortableItemList";
 
 const PLAN_STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -150,7 +151,7 @@ export function PlanDetail({ planId }: { planId: string }) {
   if (planQuery.error) return <p className="text-sm text-red-400">{planQuery.error}</p>;
   if (!plan) return <PlanSkeleton />;
 
-  const habits = plan.items.filter((item) => item.type === "habit" || item.type === "metric");
+  const habits = plan.items.filter((item) => (item.type === "habit" || item.type === "metric") && item.status !== "waiting");
   const tasks = plan.items.filter((item) => item.type === "task" || item.type === "note");
   const waiting = plan.items.filter((item) => item.status === "waiting" || item.type === "waiting");
   const day = planDayProgress(plan.start_date, plan.end_date, date);
@@ -263,6 +264,7 @@ export function PlanDetail({ planId }: { planId: string }) {
         onToggle={toggle}
         onProgress={setProgress}
         onEdit={setEditing}
+        onSaved={bump}
       />
       <ItemGroup
         title="Tasks"
@@ -270,6 +272,7 @@ export function PlanDetail({ planId }: { planId: string }) {
         onToggle={toggle}
         onProgress={setProgress}
         onEdit={setEditing}
+        onSaved={bump}
       />
       <ItemGroup
         title="Waiting"
@@ -277,6 +280,7 @@ export function PlanDetail({ planId }: { planId: string }) {
         onToggle={toggle}
         onProgress={setProgress}
         onEdit={setEditing}
+        onSaved={bump}
       />
 
       {plan.items.length === 0 ? (
@@ -347,12 +351,14 @@ function ItemGroup({
   onToggle,
   onProgress,
   onEdit,
+  onSaved,
 }: {
   title: string;
   items: TodayItem[];
   onToggle: (item: TodayItem) => void;
   onProgress: (item: TodayItem, value: number) => void;
   onEdit: (item: TodayItem) => void;
+  onSaved: () => void;
 }) {
   if (items.length === 0) return null;
   return (
@@ -360,9 +366,13 @@ function ItemGroup({
       <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-[--color-text-muted]">
         {title}
       </h2>
-      <ul className="apple-glass mt-2 divide-y divide-[--color-border] rounded-2xl border">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-start gap-3 px-3 py-3">
+      <SortableItemList
+        items={items}
+        label={title}
+        onSaved={onSaved}
+        className="apple-glass mt-2 divide-y divide-[--color-border] rounded-2xl border"
+        renderItem={(item) => (
+          <div className="flex items-start gap-3 py-3 pr-3">
             <ItemCheckbox
               checked={item.completed}
               onToggle={() => onToggle(item)}
@@ -381,9 +391,9 @@ function ItemGroup({
                 <QuantityTracker item={item} value={item.value} onChange={(value) => onProgress(item, value)} />
               ) : null}
             </div>
-          </li>
-        ))}
-      </ul>
+          </div>
+        )}
+      />
     </section>
   );
 }

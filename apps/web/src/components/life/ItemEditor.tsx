@@ -83,7 +83,7 @@ export function ItemEditor({
       setRecurrence("daily");
     }
     if (nextType === "metric") setTrackQty(true);
-    if ((nextType === "habit" || nextType === "metric") && status === "todo") {
+    if ((nextType === "habit" || nextType === "metric") && (status === "todo" || status === "waiting")) {
       setStatus("active");
     }
     if (nextType === "task" && status === "active") setStatus("todo");
@@ -297,7 +297,11 @@ export function ItemEditor({
             <p className="mb-1 text-sm text-[var(--color-text-muted)]">Status</p>
             <Select
               variant="surface"
-              options={ITEM_STATUS_OPTIONS}
+              options={
+                type === "task"
+                  ? ITEM_STATUS_OPTIONS
+                  : ITEM_STATUS_OPTIONS.filter((option) => option.value !== "waiting")
+              }
               value={status}
               onChange={(val) => {
                 if (val) setStatus(val as PlanItem["status"]);

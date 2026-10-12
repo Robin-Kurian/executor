@@ -60,6 +60,9 @@ export const lifeApi = {
   reorderPlans: (planIds: string[]) => lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/plans/reorder`, {
     method: "PATCH", body: JSON.stringify({ plan_ids: planIds }),
   }),
+  reorderItems: (itemIds: string[]) => lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/items/reorder`, {
+    method: "PATCH", body: JSON.stringify({ item_ids: itemIds }),
+  }),
   deletePlan: (id: string) =>
     lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/plans/${id}`, { method: "DELETE" }),
   createItem: (planId: string, body: Record<string, unknown>) =>
@@ -77,6 +80,10 @@ export const lifeApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  archiveOccurrence: (id: string, date: string) =>
+    lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/items/${id}/occurrence-archives/${date}`, { method: "PUT" }),
+  unarchiveOccurrence: (id: string, date: string) =>
+    lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/items/${id}/occurrence-archives/${date}`, { method: "DELETE" }),
   deleteItem: (id: string) =>
     lifeFetch<{ ok: boolean }>(`${EXECUTOR_API}/items/${id}`, { method: "DELETE" }),
   complete: (itemId: string, body: Record<string, unknown>) =>

@@ -7,11 +7,11 @@ import type { ExecutorRepository } from "../repositories/executor";
 
 type TodayRepository = Pick<
   ExecutorRepository,
-  "listPlans" | "listActivePlanItems" | "listCompletionsInRange" | "listLatestCompletedCompletionsThrough" | "listScheduleOverridesInRange"
+  "listPlans" | "listActivePlanItems" | "listCompletionsInRange" | "listLatestCompletedCompletionsThrough" | "listScheduleOverridesInRange" | "listOccurrenceArchivesInRange"
 >;
 type CalendarRepository = Pick<
   ExecutorRepository,
-  "listPlans" | "listTrackableItems" | "listCompletionsInRange" | "listScheduleOverridesInRange"
+  "listPlans" | "listTrackableItems" | "listCompletionsInRange" | "listScheduleOverridesInRange" | "listOccurrenceArchivesInRange"
 >;
 type RescheduleRepository = Pick<
   ExecutorRepository,
@@ -32,13 +32,15 @@ const STALE_CONSECUTIVE_MISSES = 3;
 export async function getToday(repo: TodayRepository, date: string, actualDate = date): Promise<TodayPayload> {
   const includeMissed = date === actualDate;
   const missedLookbackStart = includeMissed ? addDays(date, -MISSED_HISTORY_DAYS) : date;
-  const [allPlans, items, completions, latestCompleted, scheduleOverrides] = await Promise.all([
+  const [allPlans, items, completions, latestCompleted, scheduleOverrides, occurrenceArchives] = await Promise.all([
     repo.listPlans(false),
     repo.listActivePlanItems(),
     repo.listCompletionsInRange(missedLookbackStart, date),
     repo.listLatestCompletedCompletionsThrough(actualDate),
     repo.listScheduleOverridesInRange(missedLookbackStart, date),
+    repo.listOccurrenceArchivesInRange(missedLookbackStart, date),
   ]);
+  const archivedByDateAndItem = new Set(occurrenceArchives.map((row) => `${row.date}:${row.item_id}`));
   const completionByDateAndItem = new Map(completions.map((row) => [`${row.date}:${row.item_id}`, row]));
   const latestCompletionByItem = new Map(latestCompleted.map((row) => [row.item_id, row]));
   const completionFor = (itemId: string, completionDate: string) =>
@@ -60,7 +62,7 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
     missed: [],
     tasks: [],
   });
-  const overdue: TodayItem[] = []; const waiting: TodayItem[] = [];
+  const overdue: TodayItem[] = []; const waiting: TodayItem[] = []; const archived: TodayItem[] = [];
   for (const item of items) {
     const plan = plansById.get(item.plan_id); if (!plan) continue;
     const group = groups.get(plan.id); if (!group) continue;
@@ -81,6 +83,7 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
       for (let daysAgo = 1; daysAgo <= MISSED_HISTORY_DAYS; daysAgo++) {
         const candidate = addDays(date, -daysAgo);
         if (planVisibleOnToday(plan, candidate) && itemScheduledOnDateWithOverrides(item, candidate, scheduleOverrides)) {
+          if (archivedByDateAndItem.has(`${candidate}:${item.id}`)) continue;
           if (completionFor(item.id, candidate)?.completed) break;
           missedDate ??= candidate;
           consecutiveMisses += 1;
@@ -99,9 +102,14 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
       });
     }
     const next = toTodayItem(item, displayedCompletion, date);
-    if (itemIsWaiting(item)) { if (itemIsWaitingOnDate(item, date)) waiting.push(next); continue; }
-    if (itemIsOverdueOnDate(item, date)) { overdue.push(next); continue; }
+    const archivedToday = archivedByDateAndItem.has(`${date}:${item.id}`);
+    if (itemIsWaiting(item)) {
+      if (itemIsWaitingOnDate(item, date)) (archivedToday ? archived : waiting).push(next);
+      continue;
+    }
+    if (itemIsOverdueOnDate(item, date)) { (archivedToday ? archived : overdue).push(next); continue; }
     if (!itemScheduledOnDateWithOverrides(item, date, scheduleOverrides) && !displayedCompletion?.completed) continue;
+    if (archivedToday) { archived.push(next); continue; }
     if (item.type === "habit" || item.type === "metric" || item.recurrence !== "none") group.habits.push(next); else group.tasks.push(next);
   }
   const visible: TodayPlanGroup[] = [];
@@ -109,9 +117,7 @@ export async function getToday(repo: TodayRepository, date: string, actualDate =
     const actionable = [...group.habits, ...group.tasks]; if (!actionable.length && !group.missed.length) continue;
     group.progress = { completed: actionable.filter((item) => item.completed).length, total: actionable.length }; visible.push(group);
   }
-  const rank = { high: 0, medium: 1, low: 2 };
-  overdue.sort((a, b) => rank[a.priority] - rank[b.priority] || a.title.localeCompare(b.title)); waiting.sort((a, b) => a.title.localeCompare(b.title));
-  return { date, plans: visible, overdue, waiting };
+  return { date, plans: visible, overdue, waiting, archived };
 }
 
 export async function getInbox(repo: ExecutorRepository): Promise<TodayItem[]> {
@@ -125,15 +131,17 @@ function counted(plan: Plan, date: string) {
 }
 export async function getCalendar(repo: CalendarRepository, month: string): Promise<{ month: string; days: CalendarDay[] }> {
   const { start, end } = monthBounds(month);
-  const [allPlans, items, completions, scheduleOverrides] = await Promise.all([
+  const [allPlans, items, completions, scheduleOverrides, occurrenceArchives] = await Promise.all([
     repo.listPlans(true), repo.listTrackableItems(), repo.listCompletionsInRange(start, end), repo.listScheduleOverridesInRange(start, end),
+    repo.listOccurrenceArchivesInRange(start, end),
   ]);
+  const archivedByDateAndItem = new Set(occurrenceArchives.map((row) => `${row.date}:${row.item_id}`));
   const completedByDate = new Map<string, Set<string>>();
   for (const row of completions) if (row.completed) { const set = completedByDate.get(row.date) ?? new Set<string>(); set.add(row.item_id); completedByDate.set(row.date, set); }
   const planById = new Map(allPlans.map((plan) => [plan.id, plan])); const days: CalendarDay[] = [];
   for (let offset = 0; offset < daysInclusive(start, end); offset++) {
     const date = addDays(start, offset); const completed = completedByDate.get(date) ?? new Set<string>();
-    const applicable = items.filter((item) => { const plan = planById.get(item.plan_id); return Boolean(plan && counted(plan, date) && (itemScheduledOnDateWithOverrides(item, date, scheduleOverrides) || completed.has(item.id))); });
+    const applicable = items.filter((item) => { const plan = planById.get(item.plan_id); return Boolean(plan && counted(plan, date) && !archivedByDateAndItem.has(`${date}:${item.id}`) && (itemScheduledOnDateWithOverrides(item, date, scheduleOverrides) || completed.has(item.id))); });
     days.push({ date, total: applicable.length, completed: applicable.filter((item) => completed.has(item.id)).length });
   }
   return { month, days };

@@ -79,6 +79,10 @@ export const ReorderPlansSchema = z.object({ plan_ids: z.array(UuidSchema).min(1
   ({ plan_ids }) => new Set(plan_ids).size === plan_ids.length,
   { message: "Each plan can only appear once", path: ["plan_ids"] },
 );
+export const ReorderItemsSchema = z.object({ item_ids: z.array(UuidSchema).min(1) }).refine(
+  ({ item_ids }) => new Set(item_ids).size === item_ids.length,
+  { message: "Each item can only appear once", path: ["item_ids"] },
+);
 export const CreateItemSchema = z.object({ ...itemFields, title: z.string().trim().min(1).max(500) });
 export const UpdateItemSchema = z.object({ ...itemFields, plan_id: UuidSchema.optional(), sort_order: z.number().int().optional() });
 export const RescheduleOccurrenceSchema = z.object({
@@ -107,6 +111,10 @@ export const CreateNoteSchema = z.object({
 export const UpdateNoteSchema = CreateNoteSchema.partial().refine((body) => Object.keys(body).length > 0, "At least one field is required");
 
 export const IdParamsSchema = z.object({ id: UuidSchema.openapi({ param: { name: "id", in: "path" } }) });
+export const OccurrenceArchiveParamsSchema = z.object({
+  id: UuidSchema.openapi({ param: { name: "id", in: "path" } }),
+  date: DateOnlySchema.openapi({ param: { name: "date", in: "path" } }),
+});
 export const TodayQuerySchema = z.object({ date: DateOnlySchema.optional() });
 export const CalendarQuerySchema = z.object({ month: YearMonthSchema });
 export const PlansQuerySchema = z.object({ include_archived: z.enum(["true", "false"]).optional() });

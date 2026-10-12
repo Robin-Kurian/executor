@@ -1,15 +1,16 @@
 import { and, asc, desc, eq, gte, inArray, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import type {
-  ItemCompletion, ItemPriority, ItemStatus, ItemType, Plan, PlanItem, PlanNote, PlanStatus, RecurrenceKind, ScheduleOverride,
+  ItemCompletion, ItemOccurrenceArchive, ItemPriority, ItemStatus, ItemType, Plan, PlanItem, PlanNote, PlanStatus, RecurrenceKind, ScheduleOverride,
 } from "@executor/domain";
 import { isQuantityItem, nextQuantityState } from "@executor/domain";
 import type { CreateItemInput, CreatePlanInput, UpdateItemInput, UpdatePlanInput } from "@executor/contracts";
 import type { Database } from "../db/client";
-import { itemCompletions, planItems, planNotes, plans, scheduleOverrides } from "../db/schema";
+import { itemCompletions, itemOccurrenceArchives, planItems, planNotes, plans, scheduleOverrides } from "../db/schema";
 
 type PlanRow = typeof plans.$inferSelect;
 type ItemRow = typeof planItems.$inferSelect;
 type CompletionRow = typeof itemCompletions.$inferSelect;
+type OccurrenceArchiveRow = typeof itemOccurrenceArchives.$inferSelect;
 type NoteRow = typeof planNotes.$inferSelect;
 type ScheduleOverrideRow = typeof scheduleOverrides.$inferSelect;
 
@@ -25,6 +26,9 @@ const mapItem = (row: ItemRow): PlanItem => ({
 });
 const mapCompletion = (row: CompletionRow): ItemCompletion => ({
   ...row, value: row.value == null ? null : Number(row.value), created_at: iso(row.created_at), updated_at: iso(row.updated_at),
+});
+const mapOccurrenceArchive = (row: OccurrenceArchiveRow): ItemOccurrenceArchive => ({
+  ...row, created_at: iso(row.created_at), updated_at: iso(row.updated_at),
 });
 const mapNote = (row: NoteRow): PlanNote => ({ ...row, created_at: iso(row.created_at), updated_at: iso(row.updated_at) });
 const mapScheduleOverride = (row: ScheduleOverrideRow): ScheduleOverride => ({
@@ -45,6 +49,19 @@ function validateItemDates(startDate: string | null, endDate: string | null): vo
   if (startDate && endDate && endDate < startDate) {
     throw Object.assign(new Error("End date must be on or after start date"), { status: 400 });
   }
+}
+
+export function mergeReorderedIds(existingIds: string[], reorderedIds: string[]): string[] {
+  const knownIds = new Set(existingIds);
+  if (new Set(reorderedIds).size !== reorderedIds.length) {
+    throw Object.assign(new Error("Item order contains a duplicate item"), { status: 400 });
+  }
+  if (!reorderedIds.every((id) => knownIds.has(id))) {
+    throw Object.assign(new Error("Item order contains an unknown item"), { status: 400 });
+  }
+  const reordered = new Set(reorderedIds);
+  let reorderedIndex = 0;
+  return existingIds.map((id) => reordered.has(id) ? reorderedIds[reorderedIndex++]! : id);
 }
 
 export class ExecutorRepository {
@@ -146,7 +163,7 @@ export class ExecutorRepository {
   }
   async listActivePlanItems(): Promise<PlanItem[]> {
     const rows = await this.db.select({ item: planItems }).from(planItems).innerJoin(plans, eq(planItems.plan_id, plans.id))
-      .where(eq(plans.status, "active")).orderBy(asc(plans.sort_order), asc(planItems.sort_order), asc(planItems.created_at));
+      .where(eq(plans.status, "active")).orderBy(asc(planItems.sort_order), asc(planItems.created_at));
     return rows.map(({ item }) => mapItem(item));
   }
   async listTrackableItems(): Promise<PlanItem[]> {
@@ -170,6 +187,7 @@ export class ExecutorRepository {
       recurrence_weekdays: input.recurrence_weekdays ?? [], waiting_on: input.waiting_on?.trim() ?? "",
       last_follow_up: input.last_follow_up ?? null, next_follow_up: input.next_follow_up ?? null,
       target_value: input.target_value ?? null, unit: input.unit?.trim() ?? "", step_values: input.step_values ?? [],
+      sort_order: sql<number>`coalesce((select max(${planItems.sort_order}) + 1 from ${planItems}), 0)`,
     }).returning();
     if (!row) throw new Error("Item insert failed"); return mapItem(row);
   }
@@ -200,6 +218,15 @@ export class ExecutorRepository {
     }).where(eq(planItems.id, id)).returning();
     return row ? mapItem(row) : null;
   }
+  async reorderItems(itemIds: string[]): Promise<void> {
+    const existing = await this.db.select({ id: planItems.id }).from(planItems)
+      .orderBy(asc(planItems.sort_order), asc(planItems.created_at));
+    const order = mergeReorderedIds(existing.map(({ id }) => id), itemIds);
+    const updates = order.map((id, sort_order) =>
+      this.db.update(planItems).set({ sort_order, updated_at: sql`now()` }).where(eq(planItems.id, id)),
+    );
+    await this.db.batch(updates as [typeof updates[number], ...typeof updates]);
+  }
   async deleteItem(id: string): Promise<boolean> {
     return (await this.db.delete(planItems).where(eq(planItems.id, id)).returning({ id: planItems.id })).length > 0;
   }
@@ -221,6 +248,28 @@ export class ExecutorRepository {
       set: { scheduled_date: sql`excluded.scheduled_date`, updated_at: sql`now()` },
     }).returning();
     return saved.map(mapScheduleOverride);
+  }
+
+  async listOccurrenceArchivesInRange(from: string, to: string): Promise<ItemOccurrenceArchive[]> {
+    const rows = await this.db.select().from(itemOccurrenceArchives).where(and(
+      gte(itemOccurrenceArchives.date, from),
+      lte(itemOccurrenceArchives.date, to),
+    )).limit(4000);
+    return rows.map(mapOccurrenceArchive);
+  }
+
+  async setOccurrenceArchived(itemId: string, date: string, archived: boolean): Promise<void> {
+    if (!await this.getItem(itemId)) throw Object.assign(new Error("Item not found"), { status: 404 });
+    if (archived) {
+      await this.db.insert(itemOccurrenceArchives).values({ item_id: itemId, date }).onConflictDoNothing({
+        target: [itemOccurrenceArchives.item_id, itemOccurrenceArchives.date],
+      });
+      return;
+    }
+    await this.db.delete(itemOccurrenceArchives).where(and(
+      eq(itemOccurrenceArchives.item_id, itemId),
+      eq(itemOccurrenceArchives.date, date),
+    ));
   }
 
   async listDueReminderItems(from: string, through: string): Promise<PlanItem[]> {

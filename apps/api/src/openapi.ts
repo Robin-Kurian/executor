@@ -1,8 +1,8 @@
 import { OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   AnalyticsSchema, CalendarQuerySchema, CompletionSchema, CreateItemSchema, CreateNoteSchema, CreatePlanSchema, ErrorSchema,
-  HistoryQuerySchema, IdParamsSchema, NoteSchema, NotesQuerySchema, PlanDetailQuerySchema, PlanItemSchema, PlanSchema,
-  PlansQuerySchema, ReorderPlansSchema, RescheduleOccurrenceResultSchema, RescheduleOccurrenceSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema, UpdateNoteSchema, UpdatePlanSchema,
+  HistoryQuerySchema, IdParamsSchema, NoteSchema, NotesQuerySchema, OccurrenceArchiveParamsSchema, PlanDetailQuerySchema, PlanItemSchema, PlanSchema,
+  PlansQuerySchema, ReorderItemsSchema, ReorderPlansSchema, RescheduleOccurrenceResultSchema, RescheduleOccurrenceSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema, UpdateNoteSchema, UpdatePlanSchema,
   UpsertCompletionSchema,
   CreateExpoPushTokenSchema, CreatePushSubscriptionSchema, DeleteExpoPushTokenSchema, DeletePushSubscriptionSchema, PushSubscriptionResultSchema, PushTestResultSchema,
 } from "@executor/contracts";
@@ -42,9 +42,12 @@ register({ method: "patch", path: "/api/v1/plans/{id}", request: { params: IdPar
 register({ method: "delete", path: "/api/v1/plans/{id}", request: { params: IdParamsSchema }, responses: ok(z.object({ ok: z.boolean() })) });
 register({ method: "get", path: "/api/v1/plans/{id}/items", request: { params: IdParamsSchema }, responses: ok(z.array(PlanItemSchema)) });
 register({ method: "post", path: "/api/v1/plans/{id}/items", request: { params: IdParamsSchema, body: jsonBody(CreateItemSchema) }, responses: created(PlanItemSchema) });
+register({ method: "patch", path: "/api/v1/items/reorder", request: { body: jsonBody(ReorderItemsSchema) }, responses: ok(z.object({ ok: z.boolean() })) });
 register({ method: "get", path: "/api/v1/items/{id}", request: { params: IdParamsSchema }, responses: ok(PlanItemSchema) });
 register({ method: "patch", path: "/api/v1/items/{id}", request: { params: IdParamsSchema, body: jsonBody(UpdateItemSchema) }, responses: ok(PlanItemSchema) });
 register({ method: "post", path: "/api/v1/items/{id}/reschedule", request: { params: IdParamsSchema, body: jsonBody(RescheduleOccurrenceSchema) }, responses: ok(RescheduleOccurrenceResultSchema) });
+register({ method: "put", path: "/api/v1/items/{id}/occurrence-archives/{date}", request: { params: OccurrenceArchiveParamsSchema }, responses: ok(z.object({ ok: z.boolean() })) });
+register({ method: "delete", path: "/api/v1/items/{id}/occurrence-archives/{date}", request: { params: OccurrenceArchiveParamsSchema }, responses: ok(z.object({ ok: z.boolean() })) });
 register({ method: "delete", path: "/api/v1/items/{id}", request: { params: IdParamsSchema }, responses: ok(z.object({ ok: z.boolean() })) });
 register({ method: "post", path: "/api/v1/items/{id}/completions", request: { params: IdParamsSchema, body: jsonBody(UpsertCompletionSchema) }, responses: ok(CompletionSchema) });
 register({ method: "get", path: "/api/v1/items/{id}/history", request: { params: IdParamsSchema, query: HistoryQuerySchema }, responses: ok(z.object({ item: PlanItemSchema, history: z.array(CompletionSchema) })) });

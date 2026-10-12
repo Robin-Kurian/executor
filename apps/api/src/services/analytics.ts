@@ -1,5 +1,5 @@
 import { addDays, daysInclusive, itemScheduledOnDateWithOverrides, planVisibleOnToday } from "@executor/domain";
-import type { ItemCompletion, Plan, PlanItem, ScheduleOverride } from "@executor/domain";
+import type { ItemCompletion, ItemOccurrenceArchive, Plan, PlanItem, ScheduleOverride } from "@executor/domain";
 import type { AnalyticsPayload } from "@executor/contracts";
 import type { RuntimeEnv } from "../env";
 
@@ -14,6 +14,7 @@ type AnalyticsRepository = {
   listCompletionsInRange(from: string, to: string): Promise<ItemCompletion[]>;
   listLatestCompletedCompletionsThrough(to: string): Promise<ItemCompletion[]>;
   listScheduleOverridesInRange(from: string, to: string): Promise<ScheduleOverride[]>;
+  listOccurrenceArchivesInRange(from: string, to: string): Promise<ItemOccurrenceArchive[]>;
 };
 
 type NeonConsumptionResponse = {
@@ -83,11 +84,13 @@ function dailyOutcomes(
   completions: ItemCompletion[],
   latestCompleted: ItemCompletion[],
   overrides: ScheduleOverride[],
+  occurrenceArchives: ItemOccurrenceArchive[],
 ): Map<string, DayOutcome> {
   const completed = new Set(
     completions.filter((row) => row.completed).map((row) => `${row.date}:${row.item_id}`),
   );
   const latestCompletedByItem = new Map(latestCompleted.map((row) => [row.item_id, row]));
+  const archived = new Set(occurrenceArchives.map((row) => `${row.date}:${row.item_id}`));
   const planById = new Map(plans.map((plan) => [plan.id, plan]));
   const outcomes = new Map<string, DayOutcome>();
 
@@ -99,6 +102,7 @@ function dailyOutcomes(
       if (
         plan &&
         planCountedOnDate(plan, date) &&
+        !archived.has(`${date}:${item.id}`) &&
         scheduledOnHistoricalDate(item, date, overrides)
       ) {
         outcome.scheduled += 1;
@@ -182,7 +186,7 @@ export async function getAnalytics(
   today: string,
 ): Promise<AnalyticsPayload> {
   const periodStart = addDays(today, -29);
-  const [activity, neon, plans, items, completions, latestCompleted, overrides] = await Promise.all([
+  const [activity, neon, plans, items, completions, latestCompleted, overrides, occurrenceArchives] = await Promise.all([
     repository.getAnalytics(periodStart, today),
     getNeonUsage(env, today),
     repository.listPlans(true),
@@ -190,9 +194,10 @@ export async function getAnalytics(
     repository.listCompletionsInRange(periodStart, today),
     repository.listLatestCompletedCompletionsThrough(today),
     repository.listScheduleOverridesInRange(periodStart, today),
+    repository.listOccurrenceArchivesInRange(periodStart, today),
   ]);
   const completed = activity.daily.reduce((total, day) => total + day.completions, 0);
-  const outcomes = dailyOutcomes(periodStart, today, plans, items, completions, latestCompleted, overrides);
+  const outcomes = dailyOutcomes(periodStart, today, plans, items, completions, latestCompleted, overrides, occurrenceArchives);
   const { current, best } = streaks(activity.daily, outcomes);
   const failures = activity.daily.slice(0, -1).reduce((total, day) => {
     const outcome = outcomes.get(day.date);

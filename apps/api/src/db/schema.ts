@@ -63,6 +63,16 @@ export const itemCompletions = pgTable("item_completions", {
   index("idx_item_completions_date").on(table.date), index("idx_item_completions_item_id").on(table.item_id),
 ]);
 
+export const itemOccurrenceArchives = pgTable("item_occurrence_archives", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  item_id: uuid("item_id").notNull().references(() => planItems.id, { onDelete: "cascade" }),
+  date: date("date", { mode: "string" }).notNull(),
+  ...timestamps,
+}, (table) => [
+  uniqueIndex("item_occurrence_archives_item_id_date_unique").on(table.item_id, table.date),
+  index("idx_item_occurrence_archives_date").on(table.date),
+]);
+
 export const scheduleOverrides = pgTable("schedule_overrides", {
   id: uuid("id").primaryKey().defaultRandom(),
   item_id: uuid("item_id").notNull().references(() => planItems.id, { onDelete: "cascade" }),
@@ -153,7 +163,7 @@ export const pushNotificationRuns = pgTable("push_notification_runs", {
 export const planRelations = relations(plans, ({ many }) => ({ items: many(planItems), notes: many(planNotes) }));
 export const itemRelations = relations(planItems, ({ one, many }) => ({
   plan: one(plans, { fields: [planItems.plan_id], references: [plans.id] }), completions: many(itemCompletions),
-  scheduleOverrides: many(scheduleOverrides), notes: many(planNotes),
+  occurrenceArchives: many(itemOccurrenceArchives), scheduleOverrides: many(scheduleOverrides), notes: many(planNotes),
 }));
 export const userRelations = relations(user, ({ many }) => ({ pushSubscriptions: many(pushSubscriptions) }));
 export const pushSubscriptionRelations = relations(pushSubscriptions, ({ one }) => ({

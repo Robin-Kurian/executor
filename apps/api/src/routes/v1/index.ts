@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
   CalendarQuerySchema, CreateItemSchema, CreateNoteSchema, CreatePlanSchema, HistoryQuerySchema, IdParamsSchema,
-  NotesQuerySchema, PlanDetailQuerySchema, PlansQuerySchema, ReorderPlansSchema, RescheduleOccurrenceSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema,
+  NotesQuerySchema, OccurrenceArchiveParamsSchema, PlanDetailQuerySchema, PlansQuerySchema, ReorderItemsSchema, ReorderPlansSchema, RescheduleOccurrenceSchema, TodayQuerySchema, UpdateCompletionSchema, UpdateItemSchema,
   UpdateNoteSchema, UpdatePlanSchema, UpsertCompletionSchema,
 } from "@executor/contracts";
 import { dateInTimeZone, localToday } from "@executor/domain";
@@ -52,11 +52,25 @@ v1.delete("/plans/:id", zValidator("param", IdParamsSchema), async (c) => (await
 v1.get("/plans/:id/items", zValidator("param", IdParamsSchema), async (c) => c.json(await repo(c).listItems(c.req.valid("param").id)));
 v1.post("/plans/:id/items", zValidator("param", IdParamsSchema), zValidator("json", CreateItemSchema), async (c) => c.json(await repo(c).createItem(c.req.valid("param").id, c.req.valid("json")), 201));
 
+v1.patch("/items/reorder", zValidator("json", ReorderItemsSchema), async (c) => {
+  await repo(c).reorderItems(c.req.valid("json").item_ids);
+  return c.json({ ok: true });
+});
 v1.get("/items/:id", zValidator("param", IdParamsSchema), async (c) => { const row = await repo(c).getItem(c.req.valid("param").id); return row ? c.json(row) : notFound(c, "Item"); });
 v1.patch("/items/:id", zValidator("param", IdParamsSchema), zValidator("json", UpdateItemSchema), async (c) => { const row = await repo(c).updateItem(c.req.valid("param").id, c.req.valid("json")); return row ? c.json(row) : notFound(c, "Item"); });
 v1.post("/items/:id/reschedule", zValidator("param", IdParamsSchema), zValidator("json", RescheduleOccurrenceSchema), async (c) => (
   c.json(await rescheduleOccurrence(repo(c), c.req.valid("param").id, c.req.valid("json")))
 ));
+v1.put("/items/:id/occurrence-archives/:date", zValidator("param", OccurrenceArchiveParamsSchema), async (c) => {
+  const { id, date } = c.req.valid("param");
+  await repo(c).setOccurrenceArchived(id, date, true);
+  return c.json({ ok: true });
+});
+v1.delete("/items/:id/occurrence-archives/:date", zValidator("param", OccurrenceArchiveParamsSchema), async (c) => {
+  const { id, date } = c.req.valid("param");
+  await repo(c).setOccurrenceArchived(id, date, false);
+  return c.json({ ok: true });
+});
 v1.delete("/items/:id", zValidator("param", IdParamsSchema), async (c) => (await repo(c).deleteItem(c.req.valid("param").id)) ? c.json({ ok: true }) : notFound(c, "Item"));
 v1.post("/items/:id/completions", zValidator("param", IdParamsSchema), zValidator("json", UpsertCompletionSchema), async (c) => c.json(await repo(c).upsertCompletion({ item_id: c.req.valid("param").id, ...c.req.valid("json") })));
 v1.get("/items/:id/history", zValidator("param", IdParamsSchema), zValidator("query", HistoryQuerySchema), async (c) => {

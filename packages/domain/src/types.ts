@@ -87,6 +87,14 @@ export type ItemCompletion = {
   updated_at: string;
 };
 
+export type ItemOccurrenceArchive = {
+  id: string;
+  item_id: string;
+  date: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type PlanNote = {
   id: string;
   plan_id: string | null;
@@ -143,6 +151,7 @@ export type TodayPayload = {
   plans: TodayPlanGroup[];
   overdue: TodayItem[];
   waiting: TodayItem[];
+  archived: TodayItem[];
 };
 
 export type CalendarDay = {

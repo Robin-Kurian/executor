@@ -15,6 +15,7 @@ import { ItemEditor } from "./ItemEditor";
 import { useLife } from "./LifeProvider";
 import { EmptyState, LifeButton } from "./ui";
 import { ListSkeleton } from "./LoadingSkeleton";
+import { SortableItemList } from "./SortableItemList";
 
 function InboxChip({
   children,
@@ -89,14 +90,17 @@ export function InboxView() {
           />
         </div>
       ) : (
-        <ul className="mt-6 space-y-3">
-          {items.map((item) => {
+        <SortableItemList
+          items={items}
+          label="Inbox"
+          onSaved={bump}
+          className="mt-6 space-y-3"
+          rowClassName="apple-glass rounded-2xl border transition-all duration-200 hover:-translate-y-0.5"
+          rowGap={12}
+          renderItem={(item) => {
             const waiting = itemIsWaiting(item);
             return (
-              <li
-                key={item.id}
-                className="apple-glass rounded-2xl border px-4 py-4 transition-all duration-200 hover:-translate-y-0.5"
-              >
+              <div className="px-4 py-4 pl-2">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <div className="min-w-0 flex-1">
                     <button
@@ -134,10 +138,10 @@ export function InboxView() {
                     ) : null}
                   </div>
                 </div>
-              </li>
+              </div>
             );
-          })}
-        </ul>
+          }}
+        />
       )}
       {editing ? (
         <ItemEditor

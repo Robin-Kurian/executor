@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ItemCompletion, Plan, PlanItem, ScheduleOverride } from "@executor/domain";
+import type { ItemCompletion, ItemOccurrenceArchive, Plan, PlanItem, ScheduleOverride } from "@executor/domain";
 import { getCalendar, getToday, rescheduleOccurrence } from "./executor";
 
 const plan: Plan = {
@@ -67,7 +67,7 @@ function task(): PlanItem {
   };
 }
 
-function repository(completions: ItemCompletion[] = [], overrides: ScheduleOverride[] = []) {
+function repository(completions: ItemCompletion[] = [], overrides: ScheduleOverride[] = [], archives: ItemOccurrenceArchive[] = []) {
   return {
     listPlans: async () => [plan],
     listActivePlanItems: async () => [
@@ -77,6 +77,17 @@ function repository(completions: ItemCompletion[] = [], overrides: ScheduleOverr
     listCompletionsInRange: async () => completions,
     listLatestCompletedCompletionsThrough: async () => completions.filter((row) => row.completed),
     listScheduleOverridesInRange: async () => overrides,
+    listOccurrenceArchivesInRange: async () => archives,
+  };
+}
+
+function occurrenceArchive(itemId: string, date: string): ItemOccurrenceArchive {
+  return {
+    id: `archive-${itemId}-${date}`,
+    item_id: itemId,
+    date,
+    created_at: `${date}T00:00:00.000Z`,
+    updated_at: `${date}T00:00:00.000Z`,
   };
 }
 
@@ -108,6 +119,17 @@ describe("getToday missed habits", () => {
     const result = await getToday(repository([completion("chest", true)]), "2026-10-06");
 
     expect(result.plans[0]?.missed).toEqual([]);
+  });
+
+  it("treats an archived occurrence as neutral and preserves the next repetition", async () => {
+    const archive = occurrenceArchive("chest", "2026-10-05");
+    const monday = await getToday(repository([], [], [archive]), "2026-10-05");
+    const tuesday = await getToday(repository([], [], [archive]), "2026-10-06");
+
+    expect(monday.plans).toEqual([]);
+    expect(monday.archived.map((item) => item.id)).toEqual(["chest"]);
+    expect(tuesday.plans[0]?.missed).toEqual([]);
+    expect(tuesday.plans[0]?.habits.map((item) => item.id)).toEqual(["back"]);
   });
 
   it("keeps the most recent weekly occurrence visible later in the week", async () => {
@@ -160,6 +182,24 @@ describe("getToday missed habits", () => {
 });
 
 describe("getToday completed overdue tasks", () => {
+  it("preserves saved item order for overdue and waiting sections", async () => {
+    const lowPriority = { ...task(), id: "low-priority", title: "Zulu", status: "todo" as const, priority: "low" as const };
+    const highPriority = { ...task(), id: "high-priority", title: "Alpha", status: "todo" as const, priority: "high" as const };
+    const waitingZulu = { ...task(), id: "waiting-zulu", title: "Zulu waiting", status: "waiting" as const };
+    const waitingAlpha = { ...task(), id: "waiting-alpha", title: "Alpha waiting", status: "waiting" as const };
+    const result = await getToday({
+      listPlans: async () => [plan],
+      listActivePlanItems: async () => [lowPriority, highPriority, waitingZulu, waitingAlpha],
+      listCompletionsInRange: async () => [],
+      listLatestCompletedCompletionsThrough: async () => [],
+      listScheduleOverridesInRange: async () => [],
+      listOccurrenceArchivesInRange: async () => [],
+    }, "2026-10-06");
+
+    expect(result.overdue.map((item) => item.id)).toEqual(["low-priority", "high-priority"]);
+    expect(result.waiting.map((item) => item.id)).toEqual(["waiting-zulu", "waiting-alpha"]);
+  });
+
   it("places a completed overdue task on the date it was checked", async () => {
     const checkedToday = { ...completion("overdue-task", true), date: "2026-10-06" };
     const result = await getToday({
@@ -168,6 +208,7 @@ describe("getToday completed overdue tasks", () => {
       listCompletionsInRange: async () => [checkedToday],
       listLatestCompletedCompletionsThrough: async () => [checkedToday],
       listScheduleOverridesInRange: async () => [],
+      listOccurrenceArchivesInRange: async () => [],
     }, "2026-10-06");
 
     expect(result.overdue).toEqual([]);
@@ -185,6 +226,7 @@ describe("getToday completed overdue tasks", () => {
       listCompletionsInRange: async () => [uncheckedOnDueDate],
       listLatestCompletedCompletionsThrough: async () => [checkedLate],
       listScheduleOverridesInRange: async () => [],
+      listOccurrenceArchivesInRange: async () => [],
     }, "2026-10-05", "2026-10-06");
 
     expect(result.plans[0]?.tasks).toMatchObject([
@@ -201,10 +243,23 @@ describe("getCalendar completed overdue tasks", () => {
       listTrackableItems: async () => [task()],
       listCompletionsInRange: async () => [checkedOnOctoberSixth],
       listScheduleOverridesInRange: async () => [],
+      listOccurrenceArchivesInRange: async () => [],
     }, "2026-10");
 
     expect(result.days.find((day) => day.date === "2026-10-05")).toMatchObject({ total: 1, completed: 0 });
     expect(result.days.find((day) => day.date === "2026-10-06")).toMatchObject({ total: 1, completed: 1 });
+  });
+
+  it("excludes an archived occurrence from the day's total", async () => {
+    const result = await getCalendar({
+      listPlans: async () => [plan],
+      listTrackableItems: async () => [task()],
+      listCompletionsInRange: async () => [],
+      listScheduleOverridesInRange: async () => [],
+      listOccurrenceArchivesInRange: async () => [occurrenceArchive("overdue-task", "2026-10-05")],
+    }, "2026-10");
+
+    expect(result.days.find((day) => day.date === "2026-10-05")).toMatchObject({ total: 0, completed: 0 });
   });
 });
 

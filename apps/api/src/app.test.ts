@@ -22,6 +22,7 @@ describe("public API", () => {
     expect(doc.openapi).toBe("3.1.0");
     expect(doc.paths["/api/v1/today"]).toBeTruthy();
     expect(doc.paths["/api/v1/items/{id}/reschedule"]).toBeTruthy();
+    expect(doc.paths["/api/v1/items/{id}/occurrence-archives/{date}"]).toBeTruthy();
     expect(doc.paths["/api/v1/push/subscriptions"]).toBeTruthy();
   });
   it("rejects protected requests without a session", async () => {

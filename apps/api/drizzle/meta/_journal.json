@@ -64,6 +64,13 @@
       "when": 1791628979585,
       "tag": "0008_special_blacklash",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791793936818,
+      "tag": "0009_orange_magneto",
+      "breakpoints": true
     }
   ]
 }

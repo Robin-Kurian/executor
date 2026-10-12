@@ -7,6 +7,7 @@ import {
 
 const today = (completed = false): TodayPayload => ({
   date: "2026-10-01",
+  archived: [],
   plans: [{
     id: "plan-1", name: "Launch", description: "", icon: "", color: "", status: "active",
     start_date: null, end_date: null, day_progress: null, progress: { completed: completed ? 1 : 0, total: 1 },
