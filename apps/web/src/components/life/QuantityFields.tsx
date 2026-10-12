@@ -4,7 +4,7 @@ import { defaultStepValues, isCountableUnit, isKmUnit, parseNumberList } from "@
 import { cn } from "@/lib/cn";
 import { LifeField, LifeToggle, lifeChoiceClass } from "./ui";
 
-const UNIT_CHIPS = ["Ltr", "Kg", "Km", "Pages"];
+const UNIT_CHIPS = ["Ltr", "Kg", "Km", "Pages", "Hrs"];
 
 function stepsAreDefault(value: string) {
   if (!value.trim()) return true;
