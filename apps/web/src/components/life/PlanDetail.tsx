@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import { ChevronLeft } from "lucide-react";
 import { planDayProgress } from "@executor/domain/dates";
 import { executorPaths } from "@/lib/paths";
-import { isQuantityItem, nextQuantityState, nextToggleState } from "@executor/domain/quantity";
+import { isQuantityItem, nextQuantityState } from "@executor/domain/quantity";
 import type { Plan, PlanDetailPayload, PlanStatus, TodayItem } from "@executor/domain/types";
 import { Select } from "@/components/ui/Select";
 import { lifeApi } from "./api";
@@ -18,7 +18,6 @@ import { useLife } from "./LifeProvider";
 import { QuantityTracker } from "./QuantityTracker";
 import {
   EmptyState,
-  ItemCheckbox,
   LifeArea,
   LifeButton,
   LifeField,
@@ -126,10 +125,6 @@ export function PlanDetail({ planId }: { planId: string }) {
       toast.error(err instanceof Error ? err.message : "Could not save");
       bump();
     }
-  }
-
-  async function toggle(item: TodayItem) {
-    await saveProgress(item, nextToggleState(item));
   }
 
   async function setProgress(item: TodayItem, value: number) {
@@ -261,7 +256,6 @@ export function PlanDetail({ planId }: { planId: string }) {
       <ItemGroup
         title="Habits"
         items={habits}
-        onToggle={toggle}
         onProgress={setProgress}
         onEdit={setEditing}
         onSaved={bump}
@@ -269,7 +263,6 @@ export function PlanDetail({ planId }: { planId: string }) {
       <ItemGroup
         title="Tasks"
         items={tasks.filter((item) => item.status !== "waiting")}
-        onToggle={toggle}
         onProgress={setProgress}
         onEdit={setEditing}
         onSaved={bump}
@@ -277,7 +270,6 @@ export function PlanDetail({ planId }: { planId: string }) {
       <ItemGroup
         title="Waiting"
         items={waiting}
-        onToggle={toggle}
         onProgress={setProgress}
         onEdit={setEditing}
         onSaved={bump}
@@ -348,14 +340,12 @@ export function PlanDetail({ planId }: { planId: string }) {
 function ItemGroup({
   title,
   items,
-  onToggle,
   onProgress,
   onEdit,
   onSaved,
 }: {
   title: string;
   items: TodayItem[];
-  onToggle: (item: TodayItem) => void;
   onProgress: (item: TodayItem, value: number) => void;
   onEdit: (item: TodayItem) => void;
   onSaved: () => void;
@@ -372,12 +362,7 @@ function ItemGroup({
         onSaved={onSaved}
         className="apple-glass mt-2 divide-y divide-[--color-border] rounded-2xl border"
         renderItem={(item) => (
-          <div className="flex items-start gap-3 py-3 pr-3">
-            <ItemCheckbox
-              checked={item.completed}
-              onToggle={() => onToggle(item)}
-              label={item.title}
-            />
+          <div className="flex items-start py-3 pl-4 pr-3">
             <div className="min-w-0 flex-1">
               <button type="button" className="w-full text-left" onClick={() => onEdit(item)}>
                 <p className="text-sm font-medium">{item.title}</p>
