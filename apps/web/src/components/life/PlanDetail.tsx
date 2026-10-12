@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
-import { ChevronLeft } from "lucide-react";
-import { planDayProgress } from "@executor/domain/dates";
+import { ChevronLeft, Repeat2 } from "lucide-react";
+import { completedLateByDays, planDayProgress } from "@executor/domain/dates";
 import { executorPaths } from "@/lib/paths";
-import { isQuantityItem, nextQuantityState } from "@executor/domain/quantity";
+import { isQuantityItem, nextQuantityState, nextToggleState } from "@executor/domain/quantity";
 import type { Plan, PlanDetailPayload, PlanStatus, TodayItem } from "@executor/domain/types";
 import { Select } from "@/components/ui/Select";
 import { lifeApi } from "./api";
@@ -18,6 +18,7 @@ import { useLife } from "./LifeProvider";
 import { QuantityTracker } from "./QuantityTracker";
 import {
   EmptyState,
+  ItemCheckbox,
   LifeArea,
   LifeButton,
   LifeField,
@@ -129,6 +130,10 @@ export function PlanDetail({ planId }: { planId: string }) {
 
   async function setProgress(item: TodayItem, value: number) {
     await saveProgress(item, nextQuantityState(item, value));
+  }
+
+  async function toggle(item: TodayItem) {
+    await saveProgress(item, nextToggleState(item));
   }
 
   async function addNote(e: FormEvent) {
@@ -256,6 +261,7 @@ export function PlanDetail({ planId }: { planId: string }) {
       <ItemGroup
         title="Habits"
         items={habits}
+        leadingVisual="recurrence"
         onProgress={setProgress}
         onEdit={setEditing}
         onSaved={bump}
@@ -263,6 +269,8 @@ export function PlanDetail({ planId }: { planId: string }) {
       <ItemGroup
         title="Tasks"
         items={tasks.filter((item) => item.status !== "waiting")}
+        leadingVisual="checkbox"
+        onToggle={toggle}
         onProgress={setProgress}
         onEdit={setEditing}
         onSaved={bump}
@@ -340,12 +348,16 @@ export function PlanDetail({ planId }: { planId: string }) {
 function ItemGroup({
   title,
   items,
+  leadingVisual,
+  onToggle,
   onProgress,
   onEdit,
   onSaved,
 }: {
   title: string;
   items: TodayItem[];
+  leadingVisual?: "checkbox" | "recurrence";
+  onToggle?: (item: TodayItem) => void;
   onProgress: (item: TodayItem, value: number) => void;
   onEdit: (item: TodayItem) => void;
   onSaved: () => void;
@@ -362,7 +374,31 @@ function ItemGroup({
         onSaved={onSaved}
         className="apple-glass mt-2 divide-y divide-[--color-border] rounded-2xl border"
         renderItem={(item) => (
-          <div className="flex items-start py-3 pl-4 pr-3">
+          <div className="flex items-start gap-3 py-3 pl-4 pr-3">
+            {leadingVisual === "checkbox" && onToggle ? (
+              <ItemCheckbox
+                checked={item.completed || item.status === "done"}
+                onToggle={() => onToggle(item)}
+                label={
+                  item.status === "done"
+                    ? `Completed: ${item.title}`
+                    : item.status === "cancelled"
+                      ? `Cancelled: ${item.title}`
+                      : `${item.completed ? "Mark incomplete" : "Mark complete"}: ${item.title}`
+                }
+                tone={completedLateByDays(item.due_date, item.completion_date) > 0 ? "warning" : "success"}
+                disabled={item.status === "done" || item.status === "cancelled"}
+              />
+            ) : null}
+            {leadingVisual === "recurrence" ? (
+              <span
+                className="mt-0.5 flex size-6 shrink-0 items-center justify-center text-[--color-text-muted]"
+                aria-label="Recurring item"
+                title="Recurring item"
+              >
+                <Repeat2 className="size-5" aria-hidden="true" />
+              </span>
+            ) : null}
             <div className="min-w-0 flex-1">
               <button type="button" className="w-full text-left" onClick={() => onEdit(item)}>
                 <p className="text-sm font-medium">{item.title}</p>

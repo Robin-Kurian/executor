@@ -40,9 +40,20 @@ v1.patch("/plans/reorder", zValidator("json", ReorderPlansSchema), async (c) => 
 v1.get("/plans/:id", zValidator("param", IdParamsSchema), zValidator("query", PlanDetailQuerySchema), async (c) => {
   const repository = repo(c); const plan = await repository.getPlan(c.req.valid("param").id); if (!plan) return notFound(c, "Plan");
   const date = c.req.valid("query").date ?? localToday(); const items = await repository.listItems(plan.id);
-  const completions = await repository.listCompletionsForDate(date, items.map((item) => item.id));
+  const itemIds = items.map((item) => item.id);
+  const [completions, latestCompleted] = await Promise.all([
+    repository.listCompletionsForDate(date, itemIds),
+    repository.listLatestCompletedCompletionsThrough(dateInTimeZone(Date.now(), "Asia/Kolkata"), itemIds),
+  ]);
   const byItem = new Map(completions.map((completion) => [completion.item_id, completion]));
-  const hydrated = items.map((item) => toTodayItem(item, byItem.get(item.id), date));
+  const latestCompletedByItem = new Map(latestCompleted.map((completion) => [completion.item_id, completion]));
+  const hydrated = items.map((item) => toTodayItem(
+    item,
+    item.recurrence === "none" && item.status === "done"
+      ? latestCompletedByItem.get(item.id)
+      : byItem.get(item.id),
+    date,
+  ));
   return c.json({ ...plan, items: hydrated, completed_item_ids: hydrated.filter((item) => item.completed).map((item) => item.id) });
 });
 v1.patch("/plans/:id", zValidator("param", IdParamsSchema), zValidator("json", UpdatePlanSchema), async (c) => {

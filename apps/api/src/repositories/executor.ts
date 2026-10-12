@@ -289,9 +289,13 @@ export class ExecutorRepository {
   async listCompletionsInRange(from: string, to: string): Promise<ItemCompletion[]> {
     return (await this.db.select().from(itemCompletions).where(and(gte(itemCompletions.date, from), lte(itemCompletions.date, to))).limit(4000)).map(mapCompletion);
   }
-  async listLatestCompletedCompletionsThrough(to: string): Promise<ItemCompletion[]> {
+  async listLatestCompletedCompletionsThrough(to: string, itemIds?: string[]): Promise<ItemCompletion[]> {
     const rows = await this.db.selectDistinctOn([itemCompletions.item_id]).from(itemCompletions)
-      .where(and(eq(itemCompletions.completed, true), lte(itemCompletions.date, to)))
+      .where(and(
+        eq(itemCompletions.completed, true),
+        lte(itemCompletions.date, to),
+        itemIds?.length ? inArray(itemCompletions.item_id, itemIds) : undefined,
+      ))
       .orderBy(itemCompletions.item_id, desc(itemCompletions.date));
     return rows.map(mapCompletion);
   }

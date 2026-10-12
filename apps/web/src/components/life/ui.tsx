@@ -91,7 +91,7 @@ export function ItemCheckbox({
   checked: boolean;
   onToggle: () => void;
   label: string;
-  tone?: "default" | "warning";
+  tone?: "default" | "success" | "warning";
   disabled?: boolean;
 }) {
   return (
@@ -109,7 +109,9 @@ export function ItemCheckbox({
         checked
           ? tone === "warning"
             ? "border-amber-400 bg-amber-400 text-amber-950"
-            : "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-bg)]"
+            : tone === "success"
+              ? "border-emerald-500 bg-emerald-500 text-white"
+              : "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-bg)]"
           : "border-[var(--color-text-muted)] bg-transparent hover:border-[var(--color-accent)]",
       )}
     >
