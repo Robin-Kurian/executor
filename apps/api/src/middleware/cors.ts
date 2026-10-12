@@ -4,7 +4,7 @@ import type { RuntimeEnv } from "../env";
 export function exactOriginCors(env: RuntimeEnv) {
   return cors({
     origin: (origin) => origin === env.WEB_ORIGIN ? origin : "",
-    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "X-Request-Id"],
     exposeHeaders: ["X-Request-Id"],
     credentials: true,

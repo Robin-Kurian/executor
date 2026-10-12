@@ -30,6 +30,18 @@ describe("public API", () => {
     expect(response.status).toBe(401);
     expect(await response.json()).toMatchObject({ error: "Unauthorized" });
   });
+  it("allows archive PUT requests through CORS preflight", async () => {
+    const response = await createApp().request("/api/v1/items/550e8400-e29b-41d4-a716-446655440000/occurrence-archives/2026-10-12", {
+      method: "OPTIONS",
+      headers: {
+        Origin: env.WEB_ORIGIN,
+        "Access-Control-Request-Method": "PUT",
+      },
+    }, env);
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(env.WEB_ORIGIN);
+    expect(response.headers.get("Access-Control-Allow-Methods")).toContain("PUT");
+  });
   it("rejects credential requests for emails outside the allowlist", async () => {
     const response = await createApp().request("/api/auth/sign-up/email", {
       method: "POST",
