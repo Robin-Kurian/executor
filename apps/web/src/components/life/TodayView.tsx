@@ -76,6 +76,7 @@ function ItemRow({
   const completedLate = item.type === "task" && item.recurrence === "none" && item.completed
     ? completedLateByDays(item.due_date, item.completion_date)
     : 0;
+  const detailLabel = item.waiting_on ? `Waiting on ${item.waiting_on}` : null;
 
   async function move(dueDate: string | null) {
     try {
@@ -111,12 +112,17 @@ function ItemRow({
         />
       )}
       <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-2">
           {readOnlyMissed ? (
             <p
               className="min-w-0 flex-1 text-[15px] leading-snug text-[--color-text-primary]"
             >
               {item.title}
+              {item.type === "task" && item.priority === "high" ? (
+                <span className="ml-1 inline-flex items-center rounded-full border border-red-400/30 bg-red-400/10 px-1.5 py-0.5 align-middle text-[10px] font-medium leading-none text-red-600 dark:text-red-300">
+                  High
+                </span>
+              ) : null}
             </p>
           ) : (
             <button
@@ -132,13 +138,18 @@ function ItemRow({
                 }`}
               >
                 {item.title}
+                {item.type === "task" && item.priority === "high" ? (
+                  <span className="ml-1 inline-flex items-center rounded-full border border-red-400/30 bg-red-400/10 px-1.5 py-0.5 align-middle text-[10px] font-medium leading-none text-red-600 dark:text-red-300">
+                    High
+                  </span>
+                ) : null}
               </p>
             </button>
           )}
           {showActions && !readOnlyMissed && !item.completed ? (
-            <div className="flex shrink-0 items-center gap-1 text-xs text-[--color-text-muted]">
+            <div className="flex w-full shrink-0 items-center justify-start gap-1 text-xs text-[--color-text-muted] sm:w-auto">
               {onArchive ? (
-                <button type="button" onClick={() => onArchive(item, date)} className="rounded-md px-1.5 py-1 hover:bg-[--color-surface]">
+                <button type="button" onClick={() => onArchive(item, date)} className="rounded-md py-1 pl-0 pr-1.5 hover:bg-[--color-surface]">
                   Archive
                 </button>
               ) : null}
@@ -156,42 +167,42 @@ function ItemRow({
                   Wait
                 </button>
               ) : null}
-              {actionTrailing}
+              {actionTrailing ? <span className="ml-auto flex self-center">{actionTrailing}</span> : null}
             </div>
           ) : null}
         </div>
         {!readOnlyMissed && isQuantityItem(item) ? (
           <QuantityTracker item={item} value={item.value} onChange={(value) => onProgress(item, value, date)} collapsible />
         ) : null}
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[--color-text-muted]">
-          <span>
-            {item.type === "habit" || item.type === "metric"
-              ? item.type
-              : item.priority === "high"
-                ? "High"
-                : null}
-            {item.waiting_on ? ` · Waiting on ${item.waiting_on}` : ""}
-          </span>
-          {occurrenceLabel ? missedItem?.is_stale ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[11px] font-medium text-amber-200">
-              <History className="h-3 w-3" aria-hidden />
-              {missedItem.last_completed_date
-                ? `Last done ${formatDayMonth(missedItem.last_completed_date)}`
-                : "No completion yet"}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/25 bg-rose-400/10 px-2 py-0.5 text-[11px] font-medium text-rose-300">
-              <CalendarX2 className="h-3 w-3" aria-hidden />
-              Missed {occurrenceLabel}
-            </span>
-          ) : null}
-          {completedLate > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
-              <Clock3 className="h-3 w-3" aria-hidden />
-              {formatCompletedLate(completedLate)}
-            </span>
-          ) : null}
-        </div>
+        {readOnlyMissed || detailLabel || occurrenceLabel || completedLate > 0 ? (
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[--color-text-muted]">
+            {readOnlyMissed ? (
+              <span className="inline-flex items-center rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-[11px] font-medium text-black/70 dark:border-white/20 dark:bg-white/10 dark:text-white/80">
+                {item.type}
+              </span>
+            ) : null}
+            {detailLabel ? <span>{detailLabel}</span> : null}
+            {occurrenceLabel ? missedItem?.is_stale ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[11px] font-medium text-amber-200">
+                <History className="h-3 w-3" aria-hidden />
+                {missedItem.last_completed_date
+                  ? `Last done ${formatDayMonth(missedItem.last_completed_date)}`
+                  : "No completion yet"}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/25 bg-rose-400/10 px-2 py-0.5 text-[11px] font-medium text-rose-300">
+                <CalendarX2 className="h-3 w-3" aria-hidden />
+                Missed {occurrenceLabel}
+              </span>
+            ) : null}
+            {completedLate > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+                <Clock3 className="h-3 w-3" aria-hidden />
+                {formatCompletedLate(completedLate)}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {!readOnlyMissed && editing ? (
         <ItemEditor

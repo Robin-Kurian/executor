@@ -187,7 +187,7 @@ export class ExecutorRepository {
       recurrence_weekdays: input.recurrence_weekdays ?? [], waiting_on: input.waiting_on?.trim() ?? "",
       last_follow_up: input.last_follow_up ?? null, next_follow_up: input.next_follow_up ?? null,
       target_value: input.target_value ?? null, unit: input.unit?.trim() ?? "", step_values: input.step_values ?? [],
-      sort_order: sql<number>`coalesce((select max(${planItems.sort_order}) + 1 from ${planItems}), 0)`,
+      sort_order: sql<number>`coalesce((select min(${planItems.sort_order}) - 1 from ${planItems}), 0)`,
     }).returning();
     if (!row) throw new Error("Item insert failed"); return mapItem(row);
   }
